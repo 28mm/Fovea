@@ -95,7 +95,7 @@ Amazon: `[user@host]$ fovea --provider amazon --faces file.png`
 
 ### Instagram
 
-Instagram is an interesting source of example data. Accounts are often thematic, as are hashtags. Below are the top 20 labels applied to 400 images drawn from the ![@kimkardashian](https://www.instagram.com/kimkardashian/?hl=en) Instagram account. 
+Instagram is an interesting source of example data. Accounts are often thematic, as are hashtags. Below are the top 20 labels applied to 400 images drawn from the ![kimkardashian](https://www.instagram.com/kimkardashian/?hl=en) Instagram account. 
 
 ````bash
 [user@host]$ for provider in google microsoft amazon
@@ -104,7 +104,9 @@ Instagram is an interesting source of example data. Accounts are often thematic,
 > done
 ````
 
-The providers mostly agree with respect to broad categories--Person is the most frequent label in all cases--but differ regarding more specific features. For example, the Google API applies numerous *hair* related labels: *hair*, *hairstyle*, *black hair* , *long hair*, and *brown hair*. The Microsoft API applies *hair*, and *hairpiece* only, and Amazon turns up ten or so *Chairs*.
+The providers mostly agree with respect to broad categories--Person is the most frequent label in all cases--but differ regarding more specific features. For example, the Google API applies numerous *hair* related la
+bels: *hair*, *hairstyle*, *black hair* , *long hair*, and *brown hair*. The Mic
+rosoft API applies *hair*, and *hairpiece* only, and Amazon turns up ten or so *Chairs*.
 
 | Google              | Amazon     | Microsoft |
 | :---              | :---         | :---         |

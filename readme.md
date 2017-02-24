@@ -110,33 +110,32 @@ Instagram is an interesting source of example data. Accounts are often thematic,
 > done
 ````
 
-The providers mostly agree with respect to broad categories--Person is the most frequent label in all cases--but differ regarding more specific features. For example, the Google API applies numerous *hair* related la
-bels: *hair*, *hairstyle*, *black hair* , *long hair*, and *brown hair*. The Mic
-rosoft API applies *hair*, and *hairpiece* only, and Amazon turns up ten or so *Chairs*.
+The providers mostly agree with respect to broad categories--Person is the most frequent label in all cases--but differ regarding more specific features. For example, the Google API applies numerous *hair* related labels: *hair*, *hairstyle*, *black hair* , *long hair*, and *brown hair*. The Microsoft API applies *hair*, and *hairpiece* only, and Amazon turns up ten or so *Chairs*.
 
-| Google              | Amazon     | Microsoft |
-| :---              | :---         | :---         |
-|   39 nose |   43 Maillot |   11 hair | 
-|   39 spring |   45 Crowd |   12 water | 
-|   40 brown hair |   47 Accessories |   13 ground | 
-|   42 face |   48 Head |   14 black | 
-|   42 long hair |   59 Smile |   14 floor | 
-|   50 lady |   60 Lingerie |   14 nature | 
-|   51 leg |   61 Bra |   15 dressed | 
-|   55 supermodel |   62 Underwear |   16 crowd | 
-|   56 black hair |   66 Dress |   18 man | 
-|   57 model |   70 Girl |   24 beautiful | 
-|   61 photo shoot |   82 Costume |   30 sky | 
-|   64 hairstyle |   86 Apparel |   30 standing | 
-|   64 photograph |  108 Woman |   35 clothing | 
-|   66 dress |  128 Face |   36 group | 
-|   71 hair |  139 Clothing |   52 wall | 
-|   76 photography |  170 Portrait |   53 people | 
-|   96 image |  199 Selfie |   81 outdoor | 
-|  103 beauty |  231 Female |   90 woman | 
-|  103 clothing |  342 Human |  124 posing | 
-|  115 fashion |  344 People |  137 indoor | 
-|  124 person |  353 Person |  302 person |
+
+| Google              | Amazon     | Microsoft | Clarifai |
+| :---              | :---         | :---         | :--- |  
+|   39 nose |   43 Maillot |   11 hair |   75 brunette |
+|   39 spring |   45 Crowd |   12 water | 95 love  |
+|   40 brown hair |   47 Accessories |   13 ground | 96 recreation | 
+|   42 face |   48 Head |   14 black |  102 group |
+|   42 long hair |   59 Smile |   14 floor | 109 glamour | 
+|   50 lady |   60 Lingerie |   14 nature |  110 sexy |
+|   51 leg |   61 Bra |   15 dressed |  113 dress |
+|   55 supermodel |   62 Underwear |   16 crowd |  113 indoors |
+|   56 black hair |   66 Dress |   18 man |  116 music |
+|   57 model |   70 Girl |   24 beautiful |  118 facial expression |
+|   61 photo shoot |   82 Costume |   30 sky |  124 two |
+|   64 hairstyle |   86 Apparel |   30 standing |  152 man |
+|   64 photograph |  108 Woman |   35 clothing |  163 model | 
+|   66 dress |  128 Face |   36 group |  169 one |
+|   71 hair |  139 Clothing |   52 wall |  210 girl |
+|   76 photography |  170 Portrait |   53 people |  221 fashion | 
+|   96 image |  199 Selfie |   81 outdoor |  263 wear | 
+|  103 beauty |  231 Female |   90 woman |  293 portrait |
+|  103 clothing |  342 Human |  124 posing |  318 adult |
+|  115 fashion |  344 People |  137 indoor |  337 woman |
+|  124 person |  353 Person |  302 person | 352 people |
  
 
 

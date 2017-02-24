@@ -833,10 +833,18 @@ class Clarifai(Query):
         self._faces      = faces
         self._json       = None
 
+        # Use OpenCV to obtain image dimensions.
+        # Clarifai reports face bounding boxes as ratios
+        # to the image's overall dimensions.
+        CV_LOAD_IMAGE_COLOR = 1 # FIXME
+        img = cv2.imdecode(np.fromstring(image, np.uint8),
+                                   CV_LOAD_IMAGE_COLOR)
+        self.height, self.width, self.channels  = img.shape
+
+
     def run(self):
 
         self._json = {}
-        url = 'https://api.clarifai.com/v2/models/aaa03c23b3724a16a56b629203edc62c/outputs' # FIXME find model id mappings. this is general 1.3?
         headers = { 'Authorization' : 'Bearer '  + self.access_token,
                     'Content-Type'  : 'application/json' }
 
@@ -850,10 +858,33 @@ class Clarifai(Query):
             ]
         }
 
-        response = requests.post(url, headers=headers, data=json.dumps(data))
+        if self._labels:
+            # FIXME find model id mappings. This is general 1.3?
+            url = 'https://api.clarifai.com/v2/models/'\
+                  + 'aaa03c23b3724a16a56b629203edc62c/outputs' 
 
-        response_json = json.loads(response.text)
-        self._json['labels'] = response_json
+            response = requests.post(url,
+                                     headers=headers,
+                                     data=json.dumps(data))
+
+            response_json = json.loads(response.text)
+            self._json['labels'] = response_json
+
+        if self._faces:
+
+            # FIXME find model id mappings. This is face detection?
+            url = 'https://api.clarifai.com/v2/models/' \
+                  + 'a403429f2ddf4b49b307e318f00e528b/outputs' 
+
+            response = requests.post(url,
+                                     headers=headers,
+                                     data=json.dumps(data))
+
+            response_json = json.loads(response.text)
+            self._json['faces'] = response_json
+
+
+
 
     @empty_unless('_labels')
     def labels(self):
@@ -861,7 +892,7 @@ class Clarifai(Query):
 
     @empty_unless('_faces')
     def faces(self):
-        raise
+        return self._json['faces']['outputs'][0]['data']['regions']
 
     def tabular(self):
         r = []
@@ -869,11 +900,19 @@ class Clarifai(Query):
         for label in self.labels():
             r.append(str(label['value']) + '\t' + label['name'])
 
+        for region in self.faces():
+            f = region['region_info']['bounding_box']
+            left   = int(f['left_col'] * self.width)
+            top    = int(f['top_row'] * self.height)
+            width  = int((f['right_col'] * self.width) - left)
+            height = int((f['bottom_row'] * self.height) - top)
+            r.append(str(left) + '\t' + str(top) + '\t' \
+                     + str(width) + '\t' + str(height))
         return r
 
 class Facebook(Query):
     '''Stub. Should be possible to get labels from <img alt=""> as
-    well as face bounding boxes and suggested names...'''
+    Well as face bounding boxes and suggested names...'''
 
     def __init__(self, image,
                  fb_user_id,

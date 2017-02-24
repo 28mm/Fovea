@@ -722,7 +722,7 @@ class Watson(Query):
     def run(self):
 
         self._json = {}
-        if self._labels is True:
+        if self._labels or self._categories:
             url = self.api_url + '/v3/classify'
             params = {
                 'api_key' : self.api_key,
@@ -757,7 +757,9 @@ class Watson(Query):
 
     @empty_unless('_categories')
     def categories(self):
-        raise
+        return [ y for x in \
+                 self._json['labels']['images'][0]['classifiers'] \
+                 for y in x['classes'] if 'type_hierarchy' in y ]
 
     def tabular(self):
         '''Returns a list of strings to print.'''
@@ -765,6 +767,9 @@ class Watson(Query):
 
         for label in self.labels():
             r.append(str(label['score']) + '\t' + label['class'])
+
+        for label in self.categories():
+            r.append(str(label['score']) + '\t' + label['type_hierarchy'])
 
         return r
 

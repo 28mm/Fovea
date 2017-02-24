@@ -36,12 +36,14 @@ import yaml
 import cv2
 import numpy as np
 
-# Set API Keys via '--key' argument, here, or with an environment variable.
+# Set API Keys here, or as environment variables.
 GOOG_CV_KEY        = None
 MSFT_CV_KEY        = None
 AWS_CV_KEY_ID      = None
 AWS_CV_KEY_SECRET  = None
 AWS_CV_REGION      = None
+WATSON_CV_URL      = None
+WATSON_CV_KEY      = None
 FB_USER_ID         = None
 FB_PHOTOS_TOKEN    = None
 
@@ -62,6 +64,35 @@ def empty_unless(flag):
         return wrapped_fn
     return wrapper
 
+class BytesFile:
+    '''Lazy shim, so that a Bytes can be used instead of a File
+    for multipart/form-data with the Requests library.
+
+    Maybe only need __init__(...) and read(...), since
+    no evidence that other methods, attributes are used.'''
+
+    def __init__(self, b, filename=''):
+        self.b = b
+        self.name = filename
+
+    def size(self):
+        return len(b)
+
+    def read(self):
+        return self.b
+
+    def close(self):
+        self.b = None
+
+def is_png(b):
+    '''Is a Bytes a PNG?'''
+    return b[0] == 137 and b[1] == 80 and b[2] == 78 and b[3] == 71 \
+        and b[4] == 13 and b[5] == 10 and b[6] == 26 and b[7] == 10
+
+def is_jpg(b):
+    '''Is a Bytes a JPEG?'''
+    return ((b[0] << 8)|b[1]) == 65496
+
 ###########################################################################
 # Main ####################################################################
 
@@ -72,8 +103,9 @@ def main():
     # Provider Options
     parser.add_argument('--provider',
                         dest='provider',
-                        choices=[ 'google', 'microsoft', \
-                                  'amazon', 'facebook', 'opencv' ],
+                        choices=[ 'google', 'microsoft',  \
+                                  'amazon', 'opencv',     \
+                                  'watson', 'facebook' ],
                         default='google')
 
     # Output Options
@@ -83,14 +115,14 @@ def main():
                         default='tabular')
 
     # Query Options (after parsing, default to labels if none are set.)
-    flags=[ 'labels',      # MSFT GOOG AMZN
+    flags=[ 'labels',      # MSFT GOOG AMZN         WATSON
             'faces',       # MSFT GOOG AMZN OPENCV
             'text',        # MSFT GOOG
             'emotions',    # MSFT GOOG
             'description', # MSFT
             'celebrities', # MSFT
             'adult',       # MSFT
-            'categories',  # MSFT
+            'categories',  # MSFT                   WATSON
             'image_type',  # MSFT
             'color',       # MSFT
             'landmarks' ]  #      GOOG
@@ -122,7 +154,8 @@ def main():
     # Give precedence to credentials set as environment variables.
     for cred in ['GOOG_CV_KEY', 'MSFT_CV_KEY', 'AWS_CV_KEY_ID',
                  'AWS_CV_KEY_SECRET', 'AWS_CV_REGION',
-                 'FB_USER_ID', 'FB_PHOTOS_TOKEN']:
+                 'FB_USER_ID', 'FB_PHOTOS_TOKEN',
+                 'WATSON_CV_URL', 'WATSON_CV_KEY']:
         if cred in os.environ:
             globals()[cred] = os.environ[cred]
 
@@ -160,6 +193,13 @@ def main():
                                AWS_CV_KEY_SECRET,
                                labels=args.labels,
                                faces=args.faces)
+
+            elif args.provider == 'watson':
+                query = Watson(image,
+                               WATSON_CV_URL,
+                               WATSON_CV_KEY,
+                               labels=args.labels,
+                               categories=args.categories)
 
             elif args.provider == 'facebook':
                 raise
@@ -669,6 +709,58 @@ class OpenCV(Query):
 
         return r
 
+class Watson(Query):
+
+    def __init__(self, image, api_url, api_key, labels=True, categories=False):
+        self.api_url     = api_url
+        self.api_key     = api_key
+        self.image       = image
+        self._labels     = labels
+        self._categories = categories
+        self._json       = None
+
+    def run(self):
+
+        self._json = {}
+        if self._labels is True:
+            url = self.api_url + '/v3/classify'
+            params = {
+                'api_key' : self.api_key,
+                'version' : '2016-05-20',
+            }
+
+            # FIXME do this in __init__(...)
+            if is_jpg(self.image):
+                image_mime  = 'image/jpeg'
+                image_fname = 'name.jpg'
+            elif is_png(self.image):
+                image_mime = 'image/png'
+                image_fname = 'name.png'
+            else:
+                raise # FIXME better checking of supported filetypes.
+
+            f = BytesFile(self.image, filename=image_fname)
+            response = requests.post(url,
+                                     params=params,
+                                     files={ 'images_file' :
+                                             (f.name, f, image_mime) })
+
+            response_json = json.loads(response.text)
+            self._json['labels'] = response_json
+
+
+    @empty_unless('_labels')
+    def labels(self):
+        raise
+
+    @empty_unless('_categories')
+    def categories(self):
+        raise
+
+    def tabular(self):
+        '''Returns a list of strings to print.'''
+        r = []
+        return r
 
 class Facebook(Query):
     '''Stub. Should be possible to get labels from <img alt=""> as

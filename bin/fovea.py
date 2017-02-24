@@ -751,7 +751,9 @@ class Watson(Query):
 
     @empty_unless('_labels')
     def labels(self):
-        raise
+        return [ y for x in \
+                 self._json['labels']['images'][0]['classifiers'] \
+                 for y in x['classes'] ]
 
     @empty_unless('_categories')
     def categories(self):
@@ -760,6 +762,10 @@ class Watson(Query):
     def tabular(self):
         '''Returns a list of strings to print.'''
         r = []
+
+        for label in self.labels():
+            r.append(str(label['score']) + '\t' + label['class'])
+
         return r
 
 class Facebook(Query):

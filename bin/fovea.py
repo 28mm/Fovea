@@ -44,6 +44,9 @@ AWS_CV_KEY_SECRET  = None
 AWS_CV_REGION      = None
 WATSON_CV_URL      = None
 WATSON_CV_KEY      = None
+CLARIFAI_CLIENT_ID = None
+CLARIFAI_CLIENT_SECRET = None
+CLARIFAI_ACCESS_TOKEN  = None
 FB_USER_ID         = None
 FB_PHOTOS_TOKEN    = None
 
@@ -105,7 +108,7 @@ def main():
                         dest='provider',
                         choices=[ 'google', 'microsoft',  \
                                   'amazon', 'opencv',     \
-                                  'watson', 'facebook' ],
+                                  'watson', 'clarifai', 'facebook' ],
                         default='google')
 
     # Output Options
@@ -115,8 +118,8 @@ def main():
                         default='tabular')
 
     # Query Options (after parsing, default to labels if none are set.)
-    flags=[ 'labels',      # MSFT GOOG AMZN         WATSON
-            'faces',       # MSFT GOOG AMZN OPENCV
+    flags=[ 'labels',      # MSFT GOOG AMZN         WATSON CLARIFAI
+            'faces',       # MSFT GOOG AMZN OPENCV         CLARIFAI
             'text',        # MSFT GOOG
             'emotions',    # MSFT GOOG
             'description', # MSFT
@@ -155,7 +158,9 @@ def main():
     for cred in ['GOOG_CV_KEY', 'MSFT_CV_KEY', 'AWS_CV_KEY_ID',
                  'AWS_CV_KEY_SECRET', 'AWS_CV_REGION',
                  'FB_USER_ID', 'FB_PHOTOS_TOKEN',
-                 'WATSON_CV_URL', 'WATSON_CV_KEY']:
+                 'WATSON_CV_URL', 'WATSON_CV_KEY',
+                 'CLARIFAI_CLIENT_ID', 'CLARIFAI_CLIENT_SECRET',
+                 'CLARIFAI_ACCESS_TOKEN']:
         if cred in os.environ:
             globals()[cred] = os.environ[cred]
 
@@ -201,6 +206,14 @@ def main():
                                labels=args.labels,
                                categories=args.categories,
                                faces=args.faces)
+
+            elif args.provider == 'clarifai':
+                query = Clarifai(image,
+                                 CLARIFAI_CLIENT_ID,
+                                 CLARIFAI_CLIENT_SECRET,
+                                 access_token=CLARIFAI_ACCESS_TOKEN,
+                                 labels=args.labels,
+                                 faces=args.faces)
 
             elif args.provider == 'facebook':
                 raise
@@ -805,6 +818,56 @@ class Watson(Query):
                      + str(f['top'])    + '\t'    \
                      + str(f['width'])  + '\t'    \
                      + str(f['height']))
+
+        return r
+
+class Clarifai(Query):
+
+    def __init__(self, image, client_id, client_secret, access_token="",
+                 labels=True, faces=False):
+        self.client_id     = client_id
+        self.client_secret = client_secret
+        self.access_token  = access_token
+        self.image       = image
+        self._labels     = labels
+        self._faces      = faces
+        self._json       = None
+
+    def run(self):
+
+        self._json = {}
+        url = 'https://api.clarifai.com/v2/models/aaa03c23b3724a16a56b629203edc62c/outputs' # FIXME find model id mappings. this is general 1.3?
+        headers = { 'Authorization' : 'Bearer '  + self.access_token,
+                    'Content-Type'  : 'application/json' }
+
+        data = {
+            'inputs' : [
+                { 'data' :
+                  { 'image' :
+                    { 'base64' : base64.b64encode(self.image).decode('UTF-8')}
+                  }
+                }
+            ]
+        }
+
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+
+        response_json = json.loads(response.text)
+        self._json['labels'] = response_json
+
+    @empty_unless('_labels')
+    def labels(self):
+        return self._json['labels']['outputs'][0]['data']['concepts']
+
+    @empty_unless('_faces')
+    def faces(self):
+        raise
+
+    def tabular(self):
+        r = []
+
+        for label in self.labels():
+            r.append(str(label['value']) + '\t' + label['name'])
 
         return r
 

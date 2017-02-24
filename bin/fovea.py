@@ -199,7 +199,8 @@ def main():
                                WATSON_CV_URL,
                                WATSON_CV_KEY,
                                labels=args.labels,
-                               categories=args.categories)
+                               categories=args.categories,
+                               faces=args.faces)
 
             elif args.provider == 'facebook':
                 raise
@@ -719,35 +720,39 @@ class OpenCV(Query):
 
 class Watson(Query):
 
-    def __init__(self, image, api_url, api_key, labels=True, categories=False):
+    def __init__(self, image, api_url, api_key, labels=True, categories=False, faces=False):
         self.api_url     = api_url
         self.api_key     = api_key
         self.image       = image
         self._labels     = labels
         self._categories = categories
+        self._faces      = faces
         self._json       = None
 
     def run(self):
 
         self._json = {}
+        # FIXME do this in __init__(...)
+        if is_jpg(self.image):
+            image_mime  = 'image/jpeg'
+            image_fname = 'name.jpg'
+        elif is_png(self.image):
+            image_mime = 'image/png'
+            image_fname = 'name.png'
+        else:
+            raise # FIXME better checking of supported filetypes.
+
+        params = {
+            'api_key' : self.api_key,
+            'version' : '2016-05-20'
+        }
+
+        f = BytesFile(self.image, filename=image_fname)
+
+
+        # labels, categories are via one endpoint
         if self._labels or self._categories:
             url = self.api_url + '/v3/classify'
-            params = {
-                'api_key' : self.api_key,
-                'version' : '2016-05-20',
-            }
-
-            # FIXME do this in __init__(...)
-            if is_jpg(self.image):
-                image_mime  = 'image/jpeg'
-                image_fname = 'name.jpg'
-            elif is_png(self.image):
-                image_mime = 'image/png'
-                image_fname = 'name.png'
-            else:
-                raise # FIXME better checking of supported filetypes.
-
-            f = BytesFile(self.image, filename=image_fname)
             response = requests.post(url,
                                      params=params,
                                      files={ 'images_file' :
@@ -755,6 +760,17 @@ class Watson(Query):
 
             response_json = json.loads(response.text)
             self._json['labels'] = response_json
+
+        # faces are via another endpoint
+        if self._faces:
+            url = self.api_url + '/v3/detect_faces'
+            response = requests.post(url,
+                                     params=params,
+                                     files={ 'images_file' :
+                                             (f.name, f, image_mime) })
+            response_json = json.loads(response.text)
+            self._json['faces'] = response_json
+
 
 
     @empty_unless('_labels')
@@ -769,6 +785,11 @@ class Watson(Query):
                  self._json['labels']['images'][0]['classifiers'] \
                  for y in x['classes'] if 'type_hierarchy' in y ]
 
+    @empty_unless('_faces')
+    def faces(self):
+        return [ x['face_location'] for x in \
+                 self._json['faces']['images'][0]['faces']  ]
+
     def tabular(self):
         '''Returns a list of strings to print.'''
         r = []
@@ -778,6 +799,12 @@ class Watson(Query):
 
         for label in self.categories():
             r.append(str(label['score']) + '\t' + label['type_hierarchy'])
+
+        for f in self.faces():
+            r.append(str(f['left'])     + '\t'    \
+                     + str(f['top'])    + '\t'    \
+                     + str(f['width'])  + '\t'    \
+                     + str(f['height']))
 
         return r
 

@@ -355,6 +355,10 @@ class Microsoft(Query):
     def labels(self):
         return self._json['tags']
 
+    @empty_unless('_categories')
+    def categories(self):
+        return self._json['categories']
+
     @empty_unless('_description')
     def description(self):
         return self._json['description']['captions']
@@ -375,6 +379,10 @@ class Microsoft(Query):
 
         for l in self.labels():
             r.append(str(l['confidence']) + '\t' + l['name'])
+
+        for l in self.categories():
+            r.append(str(l['score']) + '\t' + l['name'])
+
         for l in self.description():
             r.append(str(l['confidence']) + '\t' + l['text'])
 

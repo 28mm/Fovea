@@ -93,6 +93,12 @@ OpenCV: `[user@host]$ fovea --provider opencv --faces file.png`
 Amazon: `[user@host]$ fovea --provider amazon --faces file.png`
 ![Rekognition](examples/face-detection/7-amazon.png)
 
+Clarifai: `[user@host]$ fovea --provider clarifai --faces file.png`
+![Clarifai](examples/face-detection/7-clarifai.png)
+
+Watson: `[user@host]$ fovea --provider watson --faces file.png`
+![Watson](examples/face-detection/7-watson.png)
+
 ### Instagram
 
 Instagram is an interesting source of example data. Accounts are often thematic, as are hashtags. Below are the top 20 labels applied to 400 images drawn from the ![kimkardashian](https://www.instagram.com/kimkardashian/?hl=en) Instagram account. 

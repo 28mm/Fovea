@@ -5,32 +5,26 @@
 
 ## Introduction
 
-Fovea provides a unified command line interface to computer vision APIs from Google, Microsoft, and AWS. Use Fovea if you want to:
+Fovea provides a unified command line interface to computer vision APIs from ![Google](https://cloud.google.com/vision/docs/), ![Microsoft](https://www.microsoft.com/cognitive-services/en-us/computer-vision-api), ![AWS](https://aws.amazon.com/rekognition/), ![Clarifai](https://developer.clarifai.com/), and ![IBM Watson](https://www.ibm.com/watson/developercloud/visual-recognition.html). Use Fovea if you want to:
 
-1.	Easily classify images in a shell script. See: [examples](#Examples).
+1.	Easily classify images in a shell script. See: [examples](#examples).
 2.	Compare the functionality or acuity of alternative computer vision apis.
 
-Fovea’s tabular output mode supports a limited subset of available features: 
+Fovea provides a standardized tabular output mode, suitable for interactive shell sessions or scripts. Where Fovea's simplified tabular output is inadequate, use its json output mode to get vendor-specific json, instead. The table below attempts to characterize the current status of Fovea's feature coverage. 
 
-1.	Classification (Labeling)
-2.	Face detection
-3.	Landmark/Location detection (Google only)
-
-Where Fovea's simplified tabular output is inadequate, use json instead. Refer to the table below to see which services support which features, and which Fovea output mode supports those features.
-
-| Feature      | Google | Microsoft | Amazon | OpenCV |   Tabular        | JSON |
-| ---: |  ---      | --- | --- | --- |  ---     | --- |
-| Labels | ✔️️      | ✔️️| ✔️️|       | ✔️️| ✔️️|
-| Faces  |  ✔️️     | ✔️️| ✔️️| ✔️️       | ✔️️| ✔️️|
-| Landmarks |  ✔️️|    |    |     | ✔️️| ✔️️|
-| Text (OCR) | ✔️️| ✔️️|    |   | ️️ | ✔️️|
-| Emotions | ✔️️| ✔️️|    |    |      |  ✔️️     |
-| Description |   | ✔️️|    |    |       | ✔️️|
-| Adult (NSFW) |        | ✔️️|  |  | | ✔️️| 
-| Categories   |        | ✔️️|  |  | | ✔️️|
-| Image Type   |        | ✔️ |   |  | | ✔️️|
-| Color        |        | ✔️️|  |  | | ✔️️|
-
+| Feature      | Google | Microsoft | Amazon | Clarifai | Watson | OpenCV | Tabular   | JSON |
+| ---:         |  ---   | ---       | ---    | ---      | ---    | ---    |  ---      | ---  |
+| Labels       | ✅️️      | ✅    ️️     | ✅️️      |  ✅       |  ✅     |        | ✅         ️️| ✅    ️️|
+| Faces        | ✅️️      | ✅️️         | ✅️️      |  ✅       |  ✅     | ✅️️      | ✅️️         | ✅️️    |
+| Landmarks    | ✅      ️|           |        |          |        |        | ✅️️         | ✅️    ️|
+| Text (OCR)   | ✅      | ❌️         |        |          |        |        | ️️❌          | ✅️️    |
+| Emotions     | ✅️️      | ✅️️         |        |          |        |        | ❌          | ✅️️    |
+| Description  |        | ✅️️         |        |          |        |        | ❌          | ✅️️    |
+| Adult (NSFW) |        | ✅️️         |        | ❌       |        |        | ❌          | ✅️️    | 
+| Categories   |        | ✅️️         |        |          | ✅️️       |        | ✅️️          | ✅️️    |
+| Image Type   |        | ✅️         |        |          |        |        | ❌          | ✅️    ️|
+| Color        |        | ✅️️         |        | ❌       |        |        | ❌          | ✅️️    |
+| Celebrities  |        | ✅         |        |          | ✅     |        | ❌          | ✅      |
 
 ## Installation and Setup
 
@@ -43,12 +37,15 @@ Clone the Fovea repository, install its dependencies, and source its environment
 [user@host]$ source fovea-env.sh 
 `````
 
+Credentials are required to use web services from most providers. Most offer a rate-limited free tier for trial or low-volume users. Refer to the links below to obtain the needed credentials.
 
  * Google Cloud Vision API: ![https://cloud.google.com/vision/docs/](https://cloud.google.com/vision/docs/)
  * Microsoft Computer Vision API: ![https://www.microsoft.com/cognitive-services/en-us/computer-vision-api](https://www.microsoft.com/cognitive-services/en-us/computer-vision-api)
  * Amazon Web Services Rekognition: ![https://aws.amazon.com/rekognition/](https://aws.amazon.com/rekognition/)
+ * IBM Watson Image Recognition: ![https://www.ibm.com/watson/developercloud/visual-recognition.html](https://www.ibm.com/watson/developercloud/visual-recognition.html)
+ * Clarifai: ![https://developer.clarifai.com/](https://developer.clarifai.com/)
 
-Web services from Google, Microsoft, and Amazon require authentication. Obtain access keys for these services via the links above. Supply these keys to Fovea by setting the relevant environment variables, shown below.
+Credentials should be supplied to Fovea via environment variables. See `fovea-env.sh` for a template.
 
 ````bash
 export GOOG_CV_KEY=""
@@ -56,11 +53,17 @@ export MSFT_CV_KEY=""
 export AWS_CV_KEY_ID=""
 export AWS_CV_KEY_SECRET=""
 export AWS_CV_REGION=""
+export CLARIFAI_CLIENT_ID=""
+export CLARIFAI_CLIENT_SECRET=""
+export CLARIFAI_ACCESS_TOKEN=""
+export WATSON_CV_URL=""
+export WATSON_CV_KEY=""
 ````
 
 ## Usage
 ````bash
-usage: fovea [-h] [--provider {google,microsoft,amazon,opencv}]
+usage: fovea [-h]
+             [--provider {google,microsoft,amazon,opencv,watson,clarifai}]
              [--output {tabular,json,yaml}] [--labels] [--faces] [--text]
              [--emotions] [--description] [--celebrities] [--adult]
              [--categories] [--image_type] [--color] [--landmarks]
@@ -75,9 +78,9 @@ usage: fovea [-h] [--provider {google,microsoft,amazon,opencv}]
   
 ### Face Detection
 
-Each of the API providers supported by Fovea has a face detection feature. In the example below (a still from the François Ozon film *8 femmes*), ImageMagick is used to draw a bounding box around the faces detected by each service. See `.../examples/face-detection` in the distribution directory for further details.
+In the example below (a still from the François Ozon film *8 femmes*), ImageMagick is used to draw a bounding box around the faces detected by six services. See `.../examples/face-detection` in the distribution directory for further details.
 
-The Google API returns better-centered and more inclusive bounding-boxes than those from any competing services. Observe also, that all of the services, including the free-to-use OpenCV Haar Cascade, find all seven faces.
+The Google API returns better-centered and more inclusive bounding-boxes than those from any competing services. Others are cropped more radically to include only facial features. All of the services, including the free-to-use OpenCV Haar Cascade, find all seven faces.
 
 Google: `[user@host]$ fovea --provider google --faces file.png`
 ![Google](examples/face-detection/7-google.png)

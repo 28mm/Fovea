@@ -123,7 +123,7 @@ def main():
             'text',        # MSFT GOOG
             'emotions',    # MSFT GOOG
             'description', # MSFT
-            'celebrities', # MSFT
+            'celebrities', # MSFT                   WATSON
             'adult',       # MSFT
             'categories',  # MSFT                   WATSON
             'image_type',  # MSFT
@@ -190,7 +190,8 @@ def main():
                                image_type=args.image_type,
                                color=args.color,
                                adult=args.adult,
-                               text=args.text)
+                               text=args.text,
+                               celebrities=args.celebrities)
 
             elif args.provider == 'amazon':
                 query = Amazon(image,

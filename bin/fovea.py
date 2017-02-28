@@ -226,7 +226,7 @@ def main():
 
             # Select output mode and print.
             if args.output == 'tabular':
-                for line in query.tabular():
+                for line in query.tabular(confidence=args.confidence):
                     print(line)
             elif args.output == 'json':
                 print(query.json())
@@ -252,7 +252,7 @@ class Query(metaclass=ABCMeta):
     # Pretty Printers
 
     @abstractmethod
-    def tabular(self):
+    def tabular(self, confidence=0.0):
         '''Returns a list of strings to print.'''
         raise NotImplementedError
 
@@ -305,7 +305,7 @@ class Microsoft(Query):
     def __init__(self, image, api_key,
                  labels=True, faces=False, emotions=False, celebrities=False,
                  description=False, categories=False, image_type=False,
-                 color=False, adult=False, text=False, confidence=0.0):
+                 color=False, adult=False, text=False):
 
         self.api_key      = api_key
 
@@ -320,8 +320,6 @@ class Microsoft(Query):
         self._color       = color       # Accent Colors, etc.
         self._adult       = adult       # Is it Porno?
         self._text        = text        # ocr
-
-        self.confidence  = confidence
 
     ########################################################################
     # Query Execution ######################################################
@@ -389,18 +387,22 @@ class Microsoft(Query):
     ########################################################################
     # print()-able response data  ##########################################
 
-    def tabular(self):
+    def tabular(self, confidence=0.0):
         r = []
 
         for l in self.labels():
-            r.append(str(l['confidence']) + '\t' + l['name'])
+            if l['confidence'] > confidence:
+                r.append(str(l['confidence']) + '\t' + l['name'])
 
         for l in self.categories():
-            r.append(str(l['score']) + '\t' + l['name'])
+            if l['score'] > confidence:
+                r.append(str(l['score']) + '\t' + l['name'])
 
         for l in self.description():
-            r.append(str(l['confidence']) + '\t' + l['text'])
+            if l['confidence'] > confidence:
+                r.append(str(l['confidence']) + '\t' + l['text'])
 
+        # FIXME apply confidence here, also?
         adult = self.adult() # FIXME do better
         if adult != []:
             r.append(str(adult['adultScore']) + '\t' + '%adult%')
@@ -566,11 +568,12 @@ class Amazon(Query):
     def faces(self):
         return self._json['RekognitionService.DetectFaces']['FaceDetails']
 
-    def tabular(self):
+    def tabular(self, confidence=0.0):
         '''Returns a list of strings to print.'''
         r = []
         for label in self.labels():
-            r.append(str(label['Confidence'] / 100) + '\t' + label['Name'])
+            if label['Confidence'] / 100. > confidence:
+                r.append(str(label['Confidence'] / 100.) + '\t' + label['Name'])
 
         # Rekognition gives bounding box locations and dimensions
         # as ratios to overal image dimensions.
@@ -592,8 +595,6 @@ class Google(Query):
         self._GOOG_CV_URL = "https://vision.googleapis.com/" \
                            +"v1/images:annotate?key="        \
                            + api_key
-
-        self.confidence = confidence
 
         self.image     = image
         self.b64_image = base64.b64encode(image) # <-- FIXME just store image
@@ -656,20 +657,22 @@ class Google(Query):
     ########################################################################
     # print()-able response data  ##########################################
 
-    def tabular(self):
+    def tabular(self, confidence=0.0):
         '''Returns a list of strings to print.'''
         r = []
         for l in self.labels():
-            r.append(str(l['score']) + '\t' + l['description'])
+            if l['score'] > confidence:
+                r.append(str(l['score']) + '\t' + l['description'])
 
         for l in self.landmarks():
-            lmark = str(l['score']) + '\t' + l['description']
+            if l['score'] > confidence:
+                lmark = str(l['score']) + '\t' + l['description']
 
-            for loc in l['locations']:
-                lmark +=  '\t' + str(loc['latLng']['latitude'])    \
-                         + ',' + str(loc['latLng']['longitude'])
+                for loc in l['locations']:
+                    lmark +=  '\t' + str(loc['latLng']['latitude'])    \
+                              + ',' + str(loc['latLng']['longitude'])
 
-            r.append(lmark)
+                r.append(lmark)
 
         for f in self.faces():
             vertices = f['boundingPoly']['vertices']
@@ -721,7 +724,7 @@ class OpenCV(Query):
     def faces(self):
         return self._json['faces']
 
-    def tabular(self):
+    def tabular(self, confidence=0.0):
         '''Returns a list of strings to print.'''
         r = []
 
@@ -804,15 +807,18 @@ class Watson(Query):
         return [ x['face_location'] for x in \
                  self._json['faces']['images'][0]['faces']  ]
 
-    def tabular(self):
+    def tabular(self, confidence=0.0):
         '''Returns a list of strings to print.'''
         r = []
 
         for label in self.labels():
-            r.append(str(label['score']) + '\t' + label['class'])
+            if label['score'] > confidence:
+                r.append(str(label['score']) + '\t' + label['class'])
 
         for label in self.categories():
-            r.append(str(label['score']) + '\t' + label['type_hierarchy'])
+            if label['score'] > confidence:
+                r.append(str(label['score']) + '\t' \
+                         + label['type_hierarchy'])
 
         for f in self.faces():
             r.append(str(f['left'])     + '\t'    \
@@ -895,11 +901,12 @@ class Clarifai(Query):
     def faces(self):
         return self._json['faces']['outputs'][0]['data']['regions']
 
-    def tabular(self):
+    def tabular(self, confidence=0.0):
         r = []
 
         for label in self.labels():
-            r.append(str(label['value']) + '\t' + label['name'])
+            if label['value'] > confidence:
+                r.append(str(label['value']) + '\t' + label['name'])
 
         for region in self.faces():
             f = region['region_info']['bounding_box']

@@ -180,7 +180,8 @@ def main():
                             labels=args.labels,
                             landmarks=args.landmarks,
                             faces=args.faces,
-                            text=args.text)
+                            text=args.text,
+                            adult=args.adult)
 
             elif args.provider == 'microsoft':
                 query = Microsoft(image,
@@ -600,9 +601,17 @@ class Amazon(Query):
 class Google(Query):
     '''Query class for the Google Cloud Vision API.'''
 
+    # (Beware: these are arbitrary assignments!)
+    likelihood = {
+        'VERY_LIKELY'   : 0.99,
+        'LIKELY'        : 0.75,
+        'UNLIKELY'      : 0.25,
+        'VERY_UNLIKELY' : 0.01
+    }
+
     def __init__(self, image, api_key,
                  labels=True, landmarks=False, faces=False,
-                 text=False, confidence=0.0):
+                 text=False, adult=False, confidence=0.0):
 
         self._GOOG_CV_URL = "https://vision.googleapis.com/" \
                            +"v1/images:annotate?key="        \
@@ -614,6 +623,7 @@ class Google(Query):
         self._landmarks = landmarks
         self._faces     = faces
         self._text      = text
+        self._adult     = adult
         self._json      = None
 
 
@@ -636,6 +646,9 @@ class Google(Query):
         if self._text is True:
             features.append({ 'type' : 'TEXT_DETECTION',
                               'maxResults' : max_results })
+        if self._adult is True:
+            features.append({ 'type' : 'SAFE_SEARCH_DETECTION',
+                              'maxResults': max_results })
 
         request_data = { 'requests' : [
             { 'image'    : { 'content' : self.b64_image.decode('UTF-8') },
@@ -662,6 +675,10 @@ class Google(Query):
     def labels(self):
         return self._json['responses'][0]['labelAnnotations']
 
+    @empty_unless('_adult')
+    def adult(self):
+        return self._json['responses'][0]['safeSearchAnnotation']
+
     @empty_unless('_faces')
     def faces(self):
         return self._json['responses'][0]['faceAnnotations']
@@ -675,6 +692,11 @@ class Google(Query):
         for l in self.labels():
             if l['score'] > confidence:
                 r.append(str(l['score']) + '\t' + l['description'])
+
+        adult = self.adult()
+        if adult:
+            r.append(str(max(Google.likelihood[adult['adult']],
+                             Google.likelihood[adult['violence']])) + '\t' + 'nsfw')
 
         for l in self.landmarks():
             if l['score'] > confidence:

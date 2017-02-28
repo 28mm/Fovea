@@ -218,6 +218,7 @@ def main():
                                  access_token=CLARIFAI_ACCESS_TOKEN,
                                  labels=args.labels,
                                  faces=args.faces,
+                                 adult=args.adult,
                                  models=args.models)
 
             elif args.provider == 'facebook':
@@ -409,8 +410,8 @@ class Microsoft(Query):
         # FIXME apply confidence here, also?
         adult = self.adult() # FIXME do better
         if adult != []:
-            r.append(str(adult['adultScore']) + '\t' + '%adult%')
-            r.append(str(adult['racyScore'])  + '\t' + '%racy%')
+            r.append(str(adult['adultScore']) + '\t' + 'nsfw')
+            r.append(str(adult['racyScore'])  + '\t' + 'racy')
 
         for l in self.faces():
             rect = l['faceRectangle']
@@ -847,7 +848,7 @@ class Clarifai(Query):
     }
 
     def __init__(self, image, client_id, client_secret, access_token="",
-                 labels=True, faces=False, models=[]):
+                 labels=True, faces=False, adult=False, models=[]):
 
         self.client_id     = client_id
         self.client_secret = client_secret
@@ -855,6 +856,7 @@ class Clarifai(Query):
         self.image         = image
         self._labels       = labels
         self._faces        = faces
+        self._adult        = adult
         self._json         = None
         self._models       = [ 'general-v1.3' ] if models is [] else models
 
@@ -868,6 +870,13 @@ class Clarifai(Query):
 
 
     def run(self):
+
+        #if self._labels and 'general-v1.3' not in self._models:
+        #    self._models.append('general-v1.3')
+
+        if self._adult and 'nsfw-v1.0' not in self._models:
+            self._models.append('nsfw-v1.0')
+            self._labels = True # bit of a hack to allow printing.
 
         self._json = {}
 
@@ -883,9 +892,6 @@ class Clarifai(Query):
                 }
             ]
         }
-
-        #if self._labels and 'general-v1.3' not in self._models:
-        #    self._models.append('general-v1.3')
 
         for model in self._models:
             model_id = self.models[model]

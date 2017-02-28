@@ -118,28 +118,28 @@ The providers mostly agree with respect to broad categories--Person is the most 
 
 | Google              | Amazon     | Microsoft | Clarifai | Watson |
 | :---              | :---         | :---         | :--- |  :---   |
-|   39 nose |   43 Maillot |   11 hair |   75 brunette | 16 nature |
-|   39 spring |   45 Crowd |   12 water | 95 love  | 16 overgarment |
-|   40 brown hair |   47 Accessories |   13 ground | 96 recreation | 17 undergarment | 
-|   42 face |   48 Head |   14 black |  102 group | 18 entertainer |
-|   42 long hair |   59 Smile |   14 floor | 109 glamour | 18 young lady (heroine) |
-|   50 lady |   60 Lingerie |   14 nature |  110 sexy | 19 room |
-|   51 leg |   61 Bra |   15 dressed |  113 dress | 20 maroon color |
-|   55 supermodel |   62 Underwear |   16 crowd |  113 indoors |  20 sister |
-|   56 black hair |   66 Dress |   18 man |  116 music | 20 sweetheart |
-|   57 model |   70 Girl |   24 beautiful |  118 facial expression | 22 dress |
-|   61 photo shoot |   82 Costume |   30 sky |  124 two | 26 Indian red color |
-|   64 hairstyle |   86 Apparel |   30 standing |  152 man | 31 gray color |
-|   64 photograph |  108 Woman |   35 clothing |  163 model | 35 device |
-|   66 dress |  128 Face |   36 group |  169 one | 38 ivory color |
-|   71 hair |  139 Clothing |   52 wall |  210 girl | 39 black color |
-|   76 photography |  170 Portrait |   53 people |  221 fashion | 52 female |
-|   96 image |  199 Selfie |   81 outdoor |  263 wear | 52 people |
-|  103 beauty |  231 Female |   90 woman |  293 portrait | 56 garment |
-|  103 clothing |  342 Human |  124 posing |  318 adult | 63 woman |
-|  115 fashion |  344 People |  137 indoor |  337 woman | 100 coal black color |
-|  124 person |  353 Person |  302 person | 352 people | 177 person |
- 
+|   39 nose |   43 Maillot |   11 hair |   75 brunette | 22 overgarment |
+|   39 spring |   45 Crowd |   12 water | 95 love  | 23 young lady (heroine) |
+|   40 brown hair |   47 Accessories |   13 ground | 96 recreation | 24 entertainer | 
+|   42 face |   48 Head |   14 black |  102 group | 25 room |
+|   42 long hair |   59 Smile |   14 floor | 109 glamour | 25 sweetheart |
+|   50 lady |   60 Lingerie |   14 nature |  110 sexy | 26 alizarine red color |
+|   51 leg |   61 Bra |   15 dressed |  113 dress | 26 sister |
+|   55 supermodel |   62 Underwear |   16 crowd |  113 indoors |  28 maroon color |
+|   56 black hair |   66 Dress |   18 man |  116 music | 28 undergarment |
+|   57 model |   70 Girl |   24 beautiful |  118 facial expression | 34 Indian red color |
+|   61 photo shoot |   82 Costume |   30 sky |  124 two | 37 dress |
+|   64 hairstyle |   86 Apparel |   30 standing |  152 man | 43 device |
+|   64 photograph |  108 Woman |   35 clothing |  163 model | 51 gray color |
+|   66 dress |  128 Face |   36 group |  169 one | 52 black color |
+|   71 hair |  139 Clothing |   52 wall |  210 girl | 60 ivory color |
+|   76 photography |  170 Portrait |   53 people |  221 fashion | 75 female |
+|   96 image |  199 Selfie |   81 outdoor |  263 wear | 83 people |
+|  103 beauty |  231 Female |   90 woman |  293 portrait | 94 woman |
+|  103 clothing |  342 Human |  124 posing |  318 adult | 95 garment |
+|  115 fashion |  344 People |  137 indoor |  337 woman | 139 coal black color |
+|  124 person |  353 Person |  302 person | 352 people | 261 person |
+
 
 
 

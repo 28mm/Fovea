@@ -17,10 +17,10 @@ Fovea provides a standardized tabular output mode, suitable for interactive shel
 | Labels       | ✅️️      | ✅    ️️     | ✅️️      |  ✅       |  ✅     |        | ✅         ️️| ✅    ️️|
 | Faces        | ✅️️      | ✅️️         | ✅️️      |  ✅       |  ✅     | ✅️️      | ✅️️         | ✅️️    |
 | Landmarks    | ✅      ️|           |        |          |        |        | ✅️️         | ✅️    ️|
-| Text (OCR)   | ✅      | ❌️         |        |          |        |        | ️️❌          | ✅️️    |
+| Text (OCR)   | ✅      | ✅️️️         |        |          |        |        | ️️❌          | ✅️️    |
 | Emotions     | ✅️️      | ✅️️         | ❌️      |          |        |        | ❌          | ✅️️    |
 | Description  |        | ✅️️         |        |          |        |        | ❌          | ✅️️    |
-| Adult (NSFW) |        | ✅️️         |        | ✅️️       |        |        | ✅️️          | ✅️️    | 
+| Adult (NSFW) | ❌     | ✅️️         |        | ✅️️       |        |        | ✅️️          | ✅️️    | 
 | Categories   |        | ✅️️         |        |          | ✅️️       |        | ✅️️          | ✅️️    |
 | Image Type   |        | ✅️         |        |          |        |        | ❌          | ✅️    ️|
 | Color        |        | ✅️️         |        | ❌       |        |        | ❌          | ✅️️    |

@@ -305,7 +305,8 @@ class Query(metaclass=ABCMeta):
 class Microsoft(Query):
     '''Query class for Microsoft->Cognitive Services->Cloud Vision API.'''
 
-    _MSFT_CV_BASE_URL = 'https://api.projectoxford.ai/vision/v1.0/analyze'
+    _MSFT_CV_BASE_URL  = 'https://api.projectoxford.ai/vision/v1.0/analyze'
+    _MSFT_OCR_BASE_URL = 'https://westus.api.cognitive.microsoft.com/vision/v1.0/ocr'
 
     def __init__(self, image, api_key,
                  labels=True, faces=False, emotions=False, celebrities=False,
@@ -331,6 +332,8 @@ class Microsoft(Query):
 
     def run(self):
 
+        self._json = {}
+
         features = '' # Comma-Separated list of query features
         features += 'Categories,'  if self._categories  is True else ''
         features += 'Tags,'        if self._labels      is True else ''
@@ -352,19 +355,23 @@ class Microsoft(Query):
             'Content-Type' : 'application/octet-stream'
         }
 
-        url = Microsoft._MSFT_CV_BASE_URL + '?visualFeatures=' + features
-        if len(details) > 0:
-            url += '&details=' + details
-        url += '&language=en' # en is default, zh optional.
+        if len(features) > 0:
+            url = Microsoft._MSFT_CV_BASE_URL + '?visualFeatures=' + features
+            if len(details) > 0:
+                url += '&details=' + details
+            url += '&language=en' # en is default, zh optional.
 
-        request_obj = request.Request(url, self.image, headers)
-        response    = request.urlopen(request_obj)
-        response_json = json.loads(response.read().decode('UTF-8'))
+            request_obj = request.Request(url, self.image, headers)
+            response    = request.urlopen(request_obj)
+            response_json = json.loads(response.read().decode('UTF-8'))
+            self._json = response_json
 
-        # FIXME: text/ocr is via a different endpoint.
-
-        self._json = response_json
-        return response_json
+        if self._text:
+            url = Microsoft._MSFT_OCR_BASE_URL + '?language=unk&detectOrientation=True'
+            request_obj = request.Request(url, self.image, headers)
+            response    = request.urlopen(request_obj)
+            response_json = json.loads(response.read().decode('UTF-8'))
+            self._json['text'] = response_json
 
     ########################################################################
     # Munge Response data ##################################################

@@ -103,6 +103,14 @@ def main():
 
     parser = argparse.ArgumentParser(description = 'Classify image contents with the the Google, Microsoft, or Amazon Computer Vision APIs.')
 
+    dispatch_tbl = { 'google'    : Google,
+                     'microsoft' : Microsoft,
+                     'amazon'    : Amazon,
+                     'opencv'    : OpenCV,
+                     'watson'    : Watson,
+                     'clarifai'  : Clarifai,
+                     'facebook'  : Facebook }
+
     # Provider Options
     parser.add_argument('--provider',
                         dest='provider',
@@ -146,12 +154,20 @@ def main():
                         default=0.0)
 
     # Take one or more files (FIXME: reporting for multiple files)
-    parser.add_argument('files', nargs='+')
+    parser.add_argument('files', nargs='*')
 
     # Take one or more models (FIXME: Clarifai only for now)
     parser.add_argument('--model', action='append', dest='models', default=[])
 
+    parser.add_argument('--list-models', dest='list_models',
+                        action='store_const', const=True, default=False)
+
     args = parser.parse_args()
+
+    if args.list_models:
+        for k, v in dispatch_tbl[args.provider].models.items():
+            print(k + '\t' + v)
+
 
     # If no `flags' are set, default to --labels.
     if True not in [ vars(args)[flag] for flag in flags ]:
@@ -269,6 +285,11 @@ class Query(metaclass=ABCMeta):
     def yaml(self):
         '''Returns yaml as a string'''
         return yaml.dump(self._json)
+
+    #
+    # Class Attributes
+
+    models = {}
 
     #
     # Possible Query Features.
@@ -923,7 +944,7 @@ class Clarifai(Query):
         }
 
         for model in self._models:
-            model_id = self.models[model]
+            model_id = Clarifai.models[model]
 
             url = 'https://api.clarifai.com/v2/models/'\
                   + model_id + '/outputs' 

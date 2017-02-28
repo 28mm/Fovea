@@ -148,6 +148,9 @@ def main():
     # Take one or more files (FIXME: reporting for multiple files)
     parser.add_argument('files', nargs='+')
 
+    # Take one or more models (FIXME: Clarifai only for now)
+    parser.add_argument('--model', action='append', dest='models', default=[])
+
     args = parser.parse_args()
 
     # If no `flags' are set, default to --labels.
@@ -214,7 +217,8 @@ def main():
                                  CLARIFAI_CLIENT_SECRET,
                                  access_token=CLARIFAI_ACCESS_TOKEN,
                                  labels=args.labels,
-                                 faces=args.faces)
+                                 faces=args.faces,
+                                 models=args.models)
 
             elif args.provider == 'facebook':
                 raise
@@ -830,15 +834,29 @@ class Watson(Query):
 
 class Clarifai(Query):
 
+    # dict generated with .../utilities/clarifai/models.py
+    models = {
+        'general-v1.3'    : 'aaa03c23b3724a16a56b629203edc62c',
+        'food-items-v1.0' : 'ecf02b31ad884d6785a9bd950f8e986c',
+        'apparel'         : 'e0be3b9d6a454f0493ac3a30784001ff',
+        'weddings-v1.0'   : 'c386b7a870114f4a87477c0824499348',
+        'travel-v1.0'     : 'eee28c313d69466f836ab83287a54ed9',
+        'celeb-v1.3'      : 'e466caa0619f444ab97497640cefc4dc',
+        'color'           : 'eeed0b6733a644cea07cf4c60f87ebb7',
+        'nsfw-v1.0'       : 'e9576d86d2004ed1a38ba0cf39ecb4b1'
+    }
+
     def __init__(self, image, client_id, client_secret, access_token="",
-                 labels=True, faces=False):
+                 labels=True, faces=False, models=[]):
+
         self.client_id     = client_id
         self.client_secret = client_secret
         self.access_token  = access_token
-        self.image       = image
-        self._labels     = labels
-        self._faces      = faces
-        self._json       = None
+        self.image         = image
+        self._labels       = labels
+        self._faces        = faces
+        self._json         = None
+        self._models       = [ 'general-v1.3' ] if models is [] else models
 
         # Use OpenCV to obtain image dimensions.
         # Clarifai reports face bounding boxes as ratios
@@ -852,6 +870,7 @@ class Clarifai(Query):
     def run(self):
 
         self._json = {}
+
         headers = { 'Authorization' : 'Bearer '  + self.access_token,
                     'Content-Type'  : 'application/json' }
 
@@ -865,17 +884,40 @@ class Clarifai(Query):
             ]
         }
 
-        if self._labels:
-            # FIXME find model id mappings. This is general 1.3?
+        #if self._labels and 'general-v1.3' not in self._models:
+        #    self._models.append('general-v1.3')
+
+        for model in self._models:
+            model_id = self.models[model]
+
             url = 'https://api.clarifai.com/v2/models/'\
-                  + 'aaa03c23b3724a16a56b629203edc62c/outputs' 
+                  + model_id + '/outputs' 
 
             response = requests.post(url,
                                      headers=headers,
                                      data=json.dumps(data))
 
             response_json = json.loads(response.text)
-            self._json['labels'] = response_json
+
+            # If we've run a second model, merge new concepts
+            if not self._json:
+                self._json['labels'] = response_json
+            else:
+                old_concepts = self._json['labels']['outputs'][0]['data']['concepts']
+                new_concepts = response_json['outputs'][0]['data']['concepts']
+
+                for c in new_concepts:
+                    name  = c['name']
+                    value = c['value']
+                    match = False
+
+                    for oc in old_concepts:
+                        if oc['name'] == name:
+                            oc['value'] = value if value > oc['value'] \
+                                          else oc['value']
+                            match = True
+                    if match is False:
+                        old_concepts.append(c)
 
         if self._faces:
 

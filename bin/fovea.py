@@ -1,22 +1,5 @@
 #!/usr/bin/env python3
 
-# Fovea provides a command-line interface to computer vision APIs
-# from Google[1], Microsoft[2], and Amazon[3]. These services differ
-# with respect to supported features and naming convention, so fovea
-# implements a unified interface with simplified output. JSON output
-# is supported, as well as yaml, and a simplified tabular format.
-#
-# TODO Facebook[4,5] support.
-# TODO IBM/Watson support.
-# TODO Expanded tabular output support.
-# TODO Add MSFT text/ocr support
-#
-# [1] https://cloud.google.com/vision/docs/
-# [2] https://www.microsoft.com/cognitive-services/en-us/computer-vision-api
-# [3] https://aws.amazon.com/rekognition/
-# [4] https://code.facebook.com/posts/457605107772545/under-the-hood-building-accessibility-tools-for-the-visually-impaired-on-facebook/
-# [5] https://code.facebook.com/posts/727262460626945/under-the-hood-facebook-accessibility/
-
 ## Standard Libraries
 import sys
 import os
@@ -87,6 +70,19 @@ class BytesFile:
     def close(self):
         self.b = None
 
+    # Context Manager bits (for 'with/as' blocks)
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False # "return True" suppresses Exception
+
+
+def flex_open(fname):
+    'open and return a file, or present a file-like proxy if given a url'
+    return BytesFile(requests.get(fname).content) if is_url(fname) else \
+        open(fname, 'rb')
+
 def is_png(b):
     '''Is a Bytes a PNG?'''
     return b[0] == 137 and b[1] == 80 and b[2] == 78 and b[3] == 71 \
@@ -95,6 +91,11 @@ def is_png(b):
 def is_jpg(b):
     '''Is a Bytes a JPEG?'''
     return ((b[0] << 8)|b[1]) == 65496
+
+def is_url(b):
+    '''Is a Bytes an HTTP url?'''
+    return str(b[0:4]) == 'http'
+
 
 ###########################################################################
 # Main ####################################################################
@@ -186,7 +187,7 @@ def main():
     #
     # Loop over each filename, make cv/api request, print appropriately.
     for fname in args.files:
-        with open(fname, 'rb') as f:
+        with flex_open(fname) as f:
             query = None
             image = f.read()
 
@@ -289,7 +290,8 @@ class Query(metaclass=ABCMeta):
     #
     # Class Attributes
 
-    models = {}
+    models = {}         # multiple model support. { canonical_name : id}
+    url_support = False # image can be given as a url
 
     #
     # Possible Query Features.

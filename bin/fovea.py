@@ -126,6 +126,16 @@ def main():
                         choices=[ 'tabular', 'json', 'yaml' ],
                         default='tabular')
 
+    # Classifier/Labels Language Options
+    parser.add_argument('--lang',
+                        dest='lang',
+                        default='en')
+
+    # OCR Language Options
+    parser.add_argument('--ocr-lang',
+                        dest='ocr_lang',
+                        default=None)
+
     # Query Options (after parsing, default to labels if none are set.)
     flags=[ 'labels',      # MSFT GOOG AMZN         WATSON CLARIFAI
             'faces',       # MSFT GOOG AMZN OPENCV         CLARIFAI
@@ -201,6 +211,18 @@ def main():
                             adult=args.adult)
 
             elif args.provider == 'microsoft':
+
+                # Make sure we have sane language defaults
+                if args.lang not in Microsoft.label_langs:
+                    raise
+
+                if args.ocr_lang and args.ocr_lang not in Microsoft.ocr_langs:
+                    raise
+
+                label_lang = args.lang
+                ocr_lang   = args.ocr_lang if args.ocr_lang else 'unk'
+
+
                 query = Microsoft(image,
                                MSFT_CV_KEY,
                                labels=args.labels,
@@ -212,7 +234,9 @@ def main():
                                color=args.color,
                                adult=args.adult,
                                text=args.text,
-                               celebrities=args.celebrities)
+                               celebrities=args.celebrities,
+                               label_lang=label_lang,
+                               ocr_lang=ocr_lang)
 
             elif args.provider == 'amazon':
                 query = Amazon(image,
@@ -290,8 +314,10 @@ class Query(metaclass=ABCMeta):
     #
     # Class Attributes
 
-    models = {}         # multiple model support. { canonical_name : id}
-    url_support = False # image can be given as a url
+    models = {}            # multiple model support. { canonical_name : id}
+    url_support = False    # image can be given as a url
+    label_langs = [ 'en' ] # supported classifier languages
+    ocr_langs   = []       # supported ocr languages
 
     #
     # Possible Query Features.
@@ -332,10 +358,38 @@ class Microsoft(Query):
     _MSFT_CV_BASE_URL  = 'https://api.projectoxford.ai/vision/v1.0/analyze'
     _MSFT_OCR_BASE_URL = 'https://westus.api.cognitive.microsoft.com/vision/v1.0/ocr'
 
+    label_langs = [ 'en', 'zh' ] # supported classifier/tag languages
+
+    # supported OCR languages
+    ocr_langs   = [ 'unk',     # (AutoDetect)
+                    'zh-Hans', # (ChineseSimplified)
+                    'zh-Hant', # (ChineseTraditional)
+                    'cs',      # (Czech)
+                    'da',      # (Danish)
+                    'nl',      # (Dutch)
+                    'en',      # (English)
+                    'fi',      # (Finnish)
+                    'fr',      # (French)
+                    'de',      # (German)
+                    'el',      # (Greek)
+                    'hu',      # (Hungarian)
+                    'it',      # (Italian)
+                    'ja',      # (Japanese)
+                    'ko',      # (Korean)
+                    'nb',      # (Norwegian)
+                    'pl',      # (Polish)
+                    'pt',      # (Portuguese,
+                    'ru',      # (Russian)
+                    'es',      # (Spanish)
+                    'sv',      # (Swedish)
+                    'tr'       # (Turkish)
+    ]
+
     def __init__(self, image, api_key,
                  labels=True, faces=False, emotions=False, celebrities=False,
                  description=False, categories=False, image_type=False,
-                 color=False, adult=False, text=False):
+                 color=False, adult=False, text=False,
+                 label_lang='en', ocr_lang='unk'):
 
         self.api_key      = api_key
 
@@ -350,6 +404,8 @@ class Microsoft(Query):
         self._color       = color       # Accent Colors, etc.
         self._adult       = adult       # Is it Porno?
         self._text        = text        # ocr
+        self.label_lang   = label_lang
+        self.ocr_lang     = ocr_lang
 
     ########################################################################
     # Query Execution ######################################################
@@ -383,7 +439,7 @@ class Microsoft(Query):
             url = Microsoft._MSFT_CV_BASE_URL + '?visualFeatures=' + features
             if len(details) > 0:
                 url += '&details=' + details
-            url += '&language=en' # en is default, zh optional.
+            url += '&language=' + self.label_lang
 
             request_obj = request.Request(url, self.image, headers)
             response    = request.urlopen(request_obj)
@@ -391,7 +447,9 @@ class Microsoft(Query):
             self._json = response_json
 
         if self._text:
-            url = Microsoft._MSFT_OCR_BASE_URL + '?language=unk&detectOrientation=True'
+            url = Microsoft._MSFT_OCR_BASE_URL     \
+                  + '?language=' + self.ocr_lang   \
+                  + '&detectOrientation=True'
             request_obj = request.Request(url, self.image, headers)
             response    = request.urlopen(request_obj)
             response_json = json.loads(response.read().decode('UTF-8'))

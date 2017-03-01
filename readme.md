@@ -5,7 +5,7 @@
 
 ## Introduction
 
-Fovea provides a unified command line interface to computer vision APIs from ![Google](https://cloud.google.com/vision/docs/), ![Microsoft](https://www.microsoft.com/cognitive-services/en-us/computer-vision-api), ![AWS](https://aws.amazon.com/rekognition/), ![Clarifai](https://developer.clarifai.com/), and ![IBM Watson](https://www.ibm.com/watson/developercloud/visual-recognition.html). Use Fovea if you want to:
+Fovea provides a unified command line interface to computer vision APIs from [Google](https://cloud.google.com/vision/docs/), [Microsoft](https://www.microsoft.com/cognitive-services/en-us/computer-vision-api), [AWS](https://aws.amazon.com/rekognition/), [Clarifai](https://developer.clarifai.com/), and [IBM Watson](https://www.ibm.com/watson/developercloud/visual-recognition.html). Use Fovea if you want to:
 
 1.	Easily classify images in a shell script. See: [examples](#examples).
 2.	Compare the functionality or acuity of alternative computer vision apis.
@@ -24,7 +24,7 @@ Fovea provides a standardized tabular output mode, suitable for interactive shel
 | Categories   |        | ✅️️         |        |          | ✅️️       |        | ✅️️          | ✅️️    |
 | Image Type   |        | ✅️         |        |          |        |        | ❌          | ✅️    ️|
 | Color        |        | ✅️️         |        | ❌       |        |        | ❌          | ✅️️    |
-| Celebrities  |        | ✅         |        |          | ✅     |        | ❌          | ✅      |
+| Celebrities  |        | ✅         |        | ❌       | ✅     |        | ❌          | ✅      |
 
 ## Installation and Setup
 
@@ -39,11 +39,11 @@ Clone the Fovea repository, install its dependencies, and source its environment
 
 Credentials are required to use web services from most providers. Most offer a rate-limited free tier for trial or low-volume users. Refer to the links below to obtain the needed credentials.
 
- * Google Cloud Vision API: ![https://cloud.google.com/vision/docs/](https://cloud.google.com/vision/docs/)
- * Microsoft Computer Vision API: ![https://www.microsoft.com/cognitive-services/en-us/computer-vision-api](https://www.microsoft.com/cognitive-services/en-us/computer-vision-api)
- * Amazon Web Services Rekognition: ![https://aws.amazon.com/rekognition/](https://aws.amazon.com/rekognition/)
- * IBM Watson Image Recognition: ![https://www.ibm.com/watson/developercloud/visual-recognition.html](https://www.ibm.com/watson/developercloud/visual-recognition.html)
- * Clarifai: ![https://developer.clarifai.com/](https://developer.clarifai.com/)
+ * Google Cloud Vision API: [https://cloud.google.com/vision/docs/](https://cloud.google.com/vision/docs/)
+ * Microsoft Computer Vision API: [https://www.microsoft.com/cognitive-services/en-us/computer-vision-api](https://www.microsoft.com/cognitive-services/en-us/computer-vision-api)
+ * Amazon Web Services Rekognition: [https://aws.amazon.com/rekognition/](https://aws.amazon.com/rekognition/)
+ * IBM Watson Image Recognition: [https://www.ibm.com/watson/developercloud/visual-recognition.html](https://www.ibm.com/watson/developercloud/visual-recognition.html)
+ * Clarifai: [https://developer.clarifai.com/](https://developer.clarifai.com/)
 
 Credentials should be supplied to Fovea via environment variables. See `fovea-env.sh` for a template.
 
@@ -104,7 +104,7 @@ Watson: `[user@host]$ fovea --provider watson --faces file.png`
 
 ### Instagram
 
-Instagram is an interesting source of example data. Accounts are often thematic, as are hashtags. Below are the top 20 labels applied to 400 images drawn from the ![kimkardashian](https://www.instagram.com/kimkardashian/?hl=en) Instagram account. 
+Instagram is an interesting source of example data. Accounts are often thematic, as are hashtags. Below are the top 20 labels applied to 400 images drawn from the [kimkardashian](https://www.instagram.com/kimkardashian/?hl=en) Instagram account. 
 
 ````bash
 [user@host]$ for provider in google microsoft amazon

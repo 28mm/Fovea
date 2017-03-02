@@ -259,12 +259,16 @@ def main():
                                faces=args.faces)
 
             elif args.provider == 'watson':
+                if args.lang not in Watson.label_langs:
+                    raise
+
                 query = Watson(image,
                                WATSON_CV_URL,
                                WATSON_CV_KEY,
                                labels=args.labels,
                                categories=args.categories,
-                               faces=args.faces)
+                               faces=args.faces,
+                               label_lang=args.lang)
 
             elif args.provider == 'clarifai':
                 # Make sure we have sane language defaults
@@ -933,7 +937,13 @@ class OpenCV(Query):
 
 class Watson(Query):
 
-    def __init__(self, image, api_url, api_key, labels=True, categories=False, faces=False):
+    # supported classifier/tag languages
+    label_langs = [ 'en',  # (English)
+                    'es',  # (Spanish)
+                    'ar',  # (Arabic)
+                    'ja' ] # (Japanese)
+
+    def __init__(self, image, api_url, api_key, labels=True, categories=False, faces=False, label_lang='en'):
         self.api_url     = api_url
         self.api_key     = api_key
         self.image       = image
@@ -941,6 +951,7 @@ class Watson(Query):
         self._categories = categories
         self._faces      = faces
         self._json       = None
+        self.label_lang  = label_lang
 
     def run(self):
 
@@ -960,6 +971,10 @@ class Watson(Query):
             'version' : '2016-05-20'
         }
 
+        headers = {
+            'Accept-Language' : self.label_lang
+        }
+
         f = BytesFile(self.image, filename=image_fname)
 
 
@@ -968,6 +983,7 @@ class Watson(Query):
             url = self.api_url + '/v3/classify'
             response = requests.post(url,
                                      params=params,
+                                     headers=headers,
                                      files={ 'images_file' :
                                              (f.name, f, image_mime) })
 

@@ -15,6 +15,7 @@ Fovea provides a standardized tabular output mode, suitable for interactive shel
 | Feature      | Google | Microsoft | Amazon | Clarifai | Watson | OpenCV | Tabular   | JSON |
 | ---:         |  ---   | ---       | ---    | ---      | ---    | ---    |  ---      | ---  |
 | Labels       | ✅️️      | ✅    ️️     | ✅️️      |  ✅       |  ✅     |        | ✅         ️️| ✅    ️️|
+| Label Translations    |        | ✅         |        | ✅       | ✅     |        | ✅          | ✅      |
 | Faces        | ✅️️      | ✅️️         | ✅️️      |  ✅       |  ✅     | ✅️️      | ✅️️         | ✅️️    |
 | Landmarks    | ✅      ️|           |        |          |        |        | ✅️️         | ✅️    ️|
 | Text (OCR)   | ✅      | ✅️️️         |        |          |        |        | ️️❌          | ✅️️    |
@@ -25,8 +26,6 @@ Fovea provides a standardized tabular output mode, suitable for interactive shel
 | Image Type   |        | ✅️         |        |          |        |        | ❌          | ✅️    ️|
 | Color        |        | ✅️️         |        | ❌       |        |        | ❌          | ✅️️    |
 | Celebrities  |        | ✅         |        | ❌       | ✅     |        | ❌          | ✅      |
-| Languages    |        | ✅         |        | ✅       | ❌     |        | ✅          | ✅      |
-| Languages (OCR) | ✅  | ✅         |        |          |        |        | ❌           | ✅     |
 
 ## Installation and Setup
 

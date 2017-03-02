@@ -25,6 +25,8 @@ Fovea provides a standardized tabular output mode, suitable for interactive shel
 | Image Type   |        | ✅️         |        |          |        |        | ❌          | ✅️    ️|
 | Color        |        | ✅️️         |        | ❌       |        |        | ❌          | ✅️️    |
 | Celebrities  |        | ✅         |        | ❌       | ✅     |        | ❌          | ✅      |
+| Languages    |        | ✅         |        | ✅       | ❌     |        | ✅          | ✅      |
+| Languages (OCR) | ✅  | ✅         |        |          |        |        | ❌           | ✅     |
 
 ## Installation and Setup
 
@@ -64,11 +66,13 @@ export WATSON_CV_KEY=""
 ````bash
 usage: fovea [-h]
              [--provider {google,microsoft,amazon,opencv,watson,clarifai}]
-             [--output {tabular,json,yaml}] [--labels] [--faces] [--text]
+             [--output {tabular,json,yaml}] [--lang LANG]
+             [--ocr-lang OCR_LANG] [--labels] [--faces] [--text]
              [--emotions] [--description] [--celebrities] [--adult]
              [--categories] [--image_type] [--color] [--landmarks]
-             [--confidence confidence threshold]
-             files [files ...]
+             [--confidence confidence threshold] [--model MODELS]
+             [--list-models] [--list-langs] [--list-ocr-langs]
+             [files [files ...]]
 ````
 
 ## Examples

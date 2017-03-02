@@ -173,11 +173,25 @@ def main():
     parser.add_argument('--list-models', dest='list_models',
                         action='store_const', const=True, default=False)
 
+    parser.add_argument('--list-langs', dest='list_langs',
+                        action='store_const', const=True, default=False)
+
+    parser.add_argument('--list-ocr-langs', dest='list_ocr_langs',
+                        action='store_const', const=True, default=False)
+
     args = parser.parse_args()
 
     if args.list_models:
         for k, v in dispatch_tbl[args.provider].models.items():
             print(k + '\t' + v)
+
+    if args.list_langs:
+        for lang in dispatch_tbl[args.provider].label_langs:
+            print(lang)
+
+    if args.list_ocr_langs:
+        for lang in dispatch_tbl[args.provider].ocr_langs:
+            print(lang)
 
 
     # If no `flags' are set, default to --labels.
@@ -222,7 +236,6 @@ def main():
                 label_lang = args.lang
                 ocr_lang   = args.ocr_lang if args.ocr_lang else 'unk'
 
-
                 query = Microsoft(image,
                                MSFT_CV_KEY,
                                labels=args.labels,
@@ -254,6 +267,10 @@ def main():
                                faces=args.faces)
 
             elif args.provider == 'clarifai':
+                # Make sure we have sane language defaults
+                if args.lang not in Clarifai.label_langs:
+                    raise
+
                 query = Clarifai(image,
                                  CLARIFAI_CLIENT_ID,
                                  CLARIFAI_CLIENT_SECRET,
@@ -261,7 +278,8 @@ def main():
                                  labels=args.labels,
                                  faces=args.faces,
                                  adult=args.adult,
-                                 models=args.models)
+                                 models=args.models,
+                                 label_lang=args.lang)
 
             elif args.provider == 'facebook':
                 raise
@@ -690,6 +708,69 @@ class Google(Query):
         'VERY_UNLIKELY' : 0.01
     }
 
+    label_langs = [ 'en', 'zh' ] # supported classifier/tag languages
+
+    # supported OCR languages
+    ocr_langs = [
+        'af',  # (Afrikaans)
+        'ar',  # (Arabic)
+        'as',  # (Assamese)
+        'az',  # (Azerbaijani)
+        'be',  # (Belarusian)
+        'bn',  # (Bengali)
+        'bg',  # (Bulgarian)
+        'ca',  # (Catalan)
+        'zh',  # (Chinese)
+        'zh-CN',  # (Chinese)
+        'zh-TW',  # (Chinese)
+        'hr',  # (Croatian)
+        'cs',  # (Czech)
+        'da',  # (Danish)
+        'nl',  # (Dutch)
+        'et',  # (Estonian)
+        'fi',  # (Finnish)
+        'fr',  # (French)
+        'de',  # (German)
+        'el',  # (Greek)
+        'he',  # (Hebrew)
+        'hi',  # (Hindi)
+        'hu',  # (Hungarian)
+        'is',  # (Icelandic)
+        'id',  # (Indonesian)
+        'it',  # (Italian)
+        'ja',  # (Japanese)
+        'kk',  # (Kazakh)
+        'ko',  # (Korean)
+        'ky',  # (Kyrgyz)
+        'lv',  # (Latvian)
+        'lt',  # (Lithuanian)
+        'mk',  # (Macedonian)
+        'mr',  # (Marathi)
+        'mn',  # (Mongolian)
+        'ne',  # (Nepali)
+        'no',  # (Norwegian)
+        'ps',  # (Pashtu)
+        'fa',  # (Persian)
+        'pl',  # (Polish)
+        'pt',  # (Portuguese)
+        'ro',  # (Romanian)
+        'ru',  # (Russian)
+        'sa',  # (Sanskrit)
+        'sr',  # (Serbian)
+        'sk',  # (Slovak)
+        'sl',  # (Slovenian)
+        'es',  # (Spanish)
+        'sv',  # (Swedish)
+        'tl',  # (Tagalog)
+        'ta',  # (Tamil)
+        'th',  # (Thai)
+        'tr',  # (Turkish)
+        'uk',  # (Ukrainian)
+        'ur',  # (Urdu)
+        'uz',  # (Uzbek)
+        'vi',  # (Vietnamese)
+    ]
+
     def __init__(self, image, api_key,
                  labels=True, landmarks=False, faces=False,
                  text=False, adult=False, confidence=0.0):
@@ -957,8 +1038,36 @@ class Clarifai(Query):
         'nsfw-v1.0'       : 'e9576d86d2004ed1a38ba0cf39ecb4b1'
     }
 
+    # Only supported with 'general' model. Otherwise: en, only.
+    label_langs = [
+        'ar',  # (Arabic)
+        'bn',  # (Bengali)
+        'da',  # (Danish)
+        'de',  # (German)
+        'en',  # (English)
+        'es',  # (Spanish)
+        'fi',  # (Finnish)
+        'fr',  # (French)
+        'hi',  # (Hindi)
+        'hu',  # (Hungarian)
+        'it',  # (Italian)
+        'ja',  # (Japanese)
+        'ko',  # (Korean)
+        'nl',  # (Dutch)
+        'no',  # (Norwegian)
+        'pa',  # (Punjabi)
+        'pl',  # (Polish)
+        'pt',  # (Portuguese)
+        'ru',  # (Russian)
+        'sv',  # (Swedish)
+        'tr',  # (Turkish)
+        'zh',  # (Chinese)
+        'zh-TW'  # (Chinese)
+    ]
+
     def __init__(self, image, client_id, client_secret, access_token="",
-                 labels=True, faces=False, adult=False, models=[]):
+                 labels=True, faces=False, adult=False, models=[],
+                 label_lang='en'):
 
         self.client_id     = client_id
         self.client_secret = client_secret
@@ -968,8 +1077,9 @@ class Clarifai(Query):
         self._faces        = faces
         self._adult        = adult
         self._json         = None
-        self._models       = [ 'general-v1.3' ] if models is [] else models
-
+        self._models       = [ 'general-v1.3' ] if models == [] else models
+        self.label_lang    = label_lang
+        
         # Use OpenCV to obtain image dimensions.
         # Clarifai reports face bounding boxes as ratios
         # to the image's overall dimensions.
@@ -1003,11 +1113,23 @@ class Clarifai(Query):
             ]
         }
 
+        # FIXME multi-lang support only avaialable for
+        # the general model, right now.
+        if self.label_lang != 'en':
+            data['model'] = { 'output_info' :
+                              { 'output_config' :
+                                { 'concepts_mutually_exclusive' : False,
+                                  'closed_environment' : False,
+                                  'language' : self.label_lang
+                                }
+                              }
+            }
+
         for model in self._models:
             model_id = Clarifai.models[model]
 
             url = 'https://api.clarifai.com/v2/models/'\
-                  + model_id + '/outputs' 
+                  + model_id + '/outputs'
 
             response = requests.post(url,
                                      headers=headers,

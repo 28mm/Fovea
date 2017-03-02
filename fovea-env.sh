@@ -11,3 +11,6 @@ export CLARIFAI_CLIENT_SECRET=""
 export CLARIFAI_ACCESS_TOKEN="" # FIXME expires
 export WATSON_CV_URL=""
 export WATSON_CV_KEY=""
+export IMAGGA_ID=""
+export IMAGGA_SECRET=""
+

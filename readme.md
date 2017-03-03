@@ -5,27 +5,27 @@
 
 ## Introduction
 
-Fovea provides a unified command line interface to computer vision APIs from [Google](https://cloud.google.com/vision/docs/), [Microsoft](https://www.microsoft.com/cognitive-services/en-us/computer-vision-api), [AWS](https://aws.amazon.com/rekognition/), [Clarifai](https://developer.clarifai.com/), and [IBM Watson](https://www.ibm.com/watson/developercloud/visual-recognition.html). Use Fovea if you want to:
+Fovea provides a unified command line interface to computer vision APIs from [Google](https://cloud.google.com/vision/docs/), [Microsoft](https://www.microsoft.com/cognitive-services/en-us/computer-vision-api), [AWS](https://aws.amazon.com/rekognition/), [Clarifai](https://developer.clarifai.com/), [Imagga](https://wwww.imagga.com/), and [IBM Watson](https://www.ibm.com/watson/developercloud/visual-recognition.html). Use Fovea if you want to:
 
 1.	Easily classify images in a shell script. See: [examples](#examples).
 2.	Compare the functionality or acuity of alternative computer vision apis.
 
 Fovea provides a standardized tabular output mode, suitable for interactive shell sessions or scripts. Where Fovea's simplified tabular output is inadequate, use its json output mode to get vendor-specific json, instead. The table below attempts to characterize the current status of Fovea's feature coverage. 
 
-| Feature      | Google | Microsoft | Amazon | Clarifai | Watson | OpenCV | Tabular   | JSON |
-| ---:         |  ---   | ---       | ---    | ---      | ---    | ---    |  ---      | ---  |
-| Labels       | ✅️️      | ✅    ️️     | ✅️️      |  ✅       |  ✅     |        | ✅         ️️| ✅    ️️|
-| Label Translations    |        | ✅         |        | ✅       | ✅     |        | ✅          | ✅      |
-| Faces        | ✅️️      | ✅️️         | ✅️️      |  ✅       |  ✅     | ✅️️      | ✅️️         | ✅️️    |
-| Landmarks    | ✅      ️|           |        |          |        |        | ✅️️         | ✅️    ️|
-| Text (OCR)   | ✅      | ✅️️️         |        |          |        |        | ️️❌          | ✅️️    |
-| Emotions     | ✅️️      | ✅️️         | ❌️      |          |        |        | ❌          | ✅️️    |
-| Description  |        | ✅️️         |        |          |        |        | ❌          | ✅️️    |
-| Adult (NSFW) | ✅     | ✅️️         |        | ✅️️       |        |        | ✅️️          | ✅️️    | 
-| Categories   |        | ✅️️         |        |          | ✅️️       |        | ✅️️          | ✅️️    |
-| Image Type   |        | ✅️         |        |          |        |        | ❌          | ✅️    ️|
-| Color        |        | ✅️️         |        | ❌       |        |        | ❌          | ✅️️    |
-| Celebrities  |        | ✅         |        | ❌       | ✅     |        | ❌          | ✅      |
+| Feature               | Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
+| ---:                  |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
+| Labels                | ✅️️     | ✅    ️️   | ✅️️     |  ✅      |  ✅   | ✅       |        | ✅         ️️| ✅    ️️|
+| Label i18n    |        | ✅       |        | ✅        | ✅    | ✅       |        | ✅          | ✅      |
+| Faces                 | ✅️️     | ✅️️       | ✅️️     |  ✅      |  ✅   |        | ✅️️     | ✅️️         | ✅️️    |
+| Landmarks             | ✅     |          |        |          |        |        |        | ✅️️         | ✅️    ️|
+| Text (OCR)            | ✅     | ✅️️️       |        |          |        |        |        | ️️❌          | ✅️️    |
+| Emotions              | ✅️️     | ✅️️       | ❌️     |          |       |        |         | ❌          | ✅️️    |
+| Description           |        | ✅️️       |        |          |        |        |         | ❌          | ✅️️    |
+| Adult (NSFW)          | ✅     | ✅️️       |        | ✅️️       |        | ✅        |         | ✅️️          | ✅️️    | 
+| Categories            |        | ✅️️       |        |          | ✅️️     |        |         | ✅️️          | ✅️️    |
+| Image Type            |        | ✅️       |        |          |        |        |         | ❌          | ✅️    ️|
+| Color                 |        | ✅️️       |        | ❌       |        | ✅       |         | ❌          | ✅️️    |
+| Celebrities           |        | ✅       |        | ❌       | ✅     |        |         | ❌          | ✅      |
 
 ## Installation and Setup
 
@@ -45,6 +45,7 @@ Credentials are required to use web services from most providers. Most offer a r
  * Amazon Web Services Rekognition: [https://aws.amazon.com/rekognition/](https://aws.amazon.com/rekognition/)
  * IBM Watson Image Recognition: [https://www.ibm.com/watson/developercloud/visual-recognition.html](https://www.ibm.com/watson/developercloud/visual-recognition.html)
  * Clarifai: [https://developer.clarifai.com/](https://developer.clarifai.com/)
+ * Imagga: [https://docs.imagga.com](https://docs.imagga.com)
 
 Credentials should be supplied to Fovea via environment variables. See `fovea-env.sh` for a template.
 
@@ -59,12 +60,14 @@ export CLARIFAI_CLIENT_SECRET=""
 export CLARIFAI_ACCESS_TOKEN=""
 export WATSON_CV_URL=""
 export WATSON_CV_KEY=""
+export IMAGGA_ID=""
+export IMAGGA_SECRET=""
 ````
 
 ## Usage
 ````bash
 usage: fovea [-h]
-             [--provider {google,microsoft,amazon,opencv,watson,clarifai}]
+             [--provider {google,microsoft,amazon,opencv,watson,clarifai,imagga}]
              [--output {tabular,json,yaml}] [--lang LANG]
              [--ocr-lang OCR_LANG] [--labels] [--faces] [--text]
              [--emotions] [--description] [--celebrities] [--adult]
@@ -110,38 +113,35 @@ Watson: `[user@host]$ fovea --provider watson --faces file.png`
 Instagram is an interesting source of example data. Accounts are often thematic, as are hashtags. Below are the top 20 labels applied to 400 images drawn from the [kimkardashian](https://www.instagram.com/kimkardashian/?hl=en) Instagram account. 
 
 ````bash
-[user@host]$ for provider in google microsoft amazon
+[user@host]$ for provider in google amazon microsoft clarifai watson imagga
 > do
 >     fovea --labels --provider $provider *.jpg | sed 's/0\.[0-9]*[[:space:]]*//g' | sort | uniq -c | sort -n | tail -20 > labels.$provider
 > done
 ````
 
-The providers mostly agree with respect to broad categories--Person is the most frequent label in all cases--but differ regarding more specific features. For example, the Google API applies numerous *hair* related labels: *hair*, *hairstyle*, *black hair* , *long hair*, and *brown hair*. The Microsoft API applies *hair*, and *hairpiece* only, and Amazon turns up ten or so *Chairs*.
-
-
-| Google              | Amazon     | Microsoft | Clarifai | Watson |
-| :---              | :---         | :---         | :--- |  :---   |
-|   39 nose |   43 Maillot |   11 hair |   75 brunette | 22 overgarment |
-|   39 spring |   45 Crowd |   12 water | 95 love  | 23 young lady (heroine) |
-|   40 brown hair |   47 Accessories |   13 ground | 96 recreation | 24 entertainer | 
-|   42 face |   48 Head |   14 black |  102 group | 25 room |
-|   42 long hair |   59 Smile |   14 floor | 109 glamour | 25 sweetheart |
-|   50 lady |   60 Lingerie |   14 nature |  110 sexy | 26 alizarine red color |
-|   51 leg |   61 Bra |   15 dressed |  113 dress | 26 sister |
-|   55 supermodel |   62 Underwear |   16 crowd |  113 indoors |  28 maroon color |
-|   56 black hair |   66 Dress |   18 man |  116 music | 28 undergarment |
-|   57 model |   70 Girl |   24 beautiful |  118 facial expression | 34 Indian red color |
-|   61 photo shoot |   82 Costume |   30 sky |  124 two | 37 dress |
-|   64 hairstyle |   86 Apparel |   30 standing |  152 man | 43 device |
-|   64 photograph |  108 Woman |   35 clothing |  163 model | 51 gray color |
-|   66 dress |  128 Face |   36 group |  169 one | 52 black color |
-|   71 hair |  139 Clothing |   52 wall |  210 girl | 60 ivory color |
-|   76 photography |  170 Portrait |   53 people |  221 fashion | 75 female |
-|   96 image |  199 Selfie |   81 outdoor |  263 wear | 83 people |
-|  103 beauty |  231 Female |   90 woman |  293 portrait | 94 woman |
-|  103 clothing |  342 Human |  124 posing |  318 adult | 95 garment |
-|  115 fashion |  344 People |  137 indoor |  337 woman | 139 coal black color |
-|  124 person |  353 Person |  302 person | 352 people | 261 person |
+| Google              | Amazon     | Microsoft | Clarifai | Watson | Imagga |
+| :---              | :---         | :---         | :--- |  :---   | :--- |
+|   39 nose |   43 Maillot |   11 hair |   75 brunette | 22 overgarment | 264 model |
+|   39 spring |   45 Crowd |   12 water | 95 love  | 23 young lady (heroine) | 266 cute |
+|   40 brown hair |   47 Accessories |   13 ground | 96 recreation | 24 entertainer | 270 youth |
+|   42 face |   48 Head |   14 black |  102 group | 25 room | 267 lady | 
+|   42 long hair |   59 Smile |   14 floor | 109 glamour | 25 sweetheart | 272 fashion |
+|   50 lady |   60 Lingerie |   14 nature |  110 sexy | 26 alizarine red color | 268 man |
+|   51 leg |   61 Bra |   15 dressed |  113 dress | 26 sister | 282 casual | 
+|   55 supermodel |   62 Underwear |   16 crowd |  113 indoors |  28 maroon color | 304 women |
+|   56 black hair |   66 Dress |   18 man |  116 music | 28 undergarment | 305 smiling |
+|   57 model |   70 Girl |   24 beautiful |  118 facial expression | 34 Indian red color | 306 face |
+|   61 photo shoot |   82 Costume |   30 sky |  124 two | 37 dress |306 happiness |
+|   64 hairstyle |   86 Apparel |   30 standing |  152 man | 43 device | 320 lifestyle |
+|   64 photograph |  108 Woman |   35 clothing |  163 model | 51 gray color | 321 pretty |
+|   66 dress |  128 Face |   36 group |  169 one | 52 black color | 324 portrait |
+|   71 hair |  139 Clothing |   52 wall |  210 girl | 60 ivory color | 331 smile |
+|   76 photography |  170 Portrait |   53 people |  221 fashion | 75 female | 332 attractive |
+|   96 image |  199 Selfie |   81 outdoor |  263 wear | 83 people | 333 happy |
+|  103 beauty |  231 Female |   90 woman |  293 portrait | 94 woman | 336 caucasian |
+|  103 clothing |  342 Human |  124 posing |  318 adult | 95 garment | 340 adult |
+|  115 fashion |  344 People |  137 indoor |  337 woman | 139 coal black color |  348 person |
+|  124 person |  353 Person |  302 person | 352 people | 261 person |  349 people |
 
 
 

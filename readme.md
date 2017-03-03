@@ -14,18 +14,18 @@ Fovea provides a standardized tabular output mode, suitable for interactive shel
 
 | Feature               | Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
 | ---:                  |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
-| Labels                | ✅️️     | ✅    ️️   | ✅️️     |  ✅      |  ✅   | ✅       |        | ✅         ️️| ✅    ️️|
-| Label i18n    |        | ✅       |        | ✅        | ✅    | ✅       |        | ✅          | ✅      |
-| Faces                 | ✅️️     | ✅️️       | ✅️️     |  ✅      |  ✅   |        | ✅️️     | ✅️️         | ✅️️    |
-| Landmarks             | ✅     |          |        |          |        |        |        | ✅️️         | ✅️    ️|
-| Text (OCR)            | ✅     | ✅️️️       |        |          |        |        |        | ️️❌          | ✅️️    |
-| Emotions              | ✅️️     | ✅️️       | ❌️     |          |       |        |         | ❌          | ✅️️    |
-| Description           |        | ✅️️       |        |          |        |        |         | ❌          | ✅️️    |
-| Adult (NSFW)          | ✅     | ✅️️       |        | ✅️️       |        | ❌        |         | ✅️️          | ✅️️    | 
-| Categories            |        | ✅️️       |        |          | ✅️️     |        |         | ✅️️          | ✅️️    |
-| Image Type            |        | ✅️       |        |          |        |        |         | ❌          | ✅️    ️|
-| Color                 |        | ✅️️       |        | ❌       |        | ❌       |         | ❌          | ✅️️    |
-| Celebrities           |        | ✅       |        | ❌       | ✅     |        |         | ❌          | ✅      |
+| [Labels](#labels) | ✅️️     | ✅    ️️   | ✅️️     |  ✅      |  ✅   | ✅       |        | ✅         ️️| ✅    ️️|
+| [Label i18n](#label-i18n)    |        | ✅       |        | ✅        | ✅    | ✅       |        | ✅          | ✅      |
+| [Faces](#faces)                 | ✅️️     | ✅️️       | ✅️️     |  ✅      |  ✅   |        | ✅️️     | ✅️️         | ✅️️    |
+| [Landmarks](#landmarks)             | ✅     |          |        |          |        |        |        | ✅️️         | ✅️    ️|
+| [Text (OCR)](#ocr)            | ✅     | ✅️️️       |        |          |        |        |        | ️️❌          | ✅️️    |
+| [Emotions](#emotions)              | ✅️️     | ✅️️       | ❌️     |          |       |        |         | ❌          | ✅️️    |
+| [Description](#description)           |        | ✅️️       |        |          |        |        |         | ❌          | ✅️️    |
+| [Adult (NSFW)](#adult)          | ✅     | ✅️️       |        | ✅️️       |        | ❌        |         | ✅️️          | ✅️️    | 
+| [Categories](#categories)            |        | ✅️️       |        |          | ✅️️     |        |         | ✅️️          | ✅️️    |
+| [Image Type](#image-type)            |        | ✅️       |        |          |        |        |         | ❌          | ✅️    ️|
+| [Color](#color)                 |        | ✅️️       |        | ❌       |        | ❌       |         | ❌          | ✅️️    |
+| [Celebrities](#celebrities)           |        | ✅       |        | ❌       | ✅     |        |         | ❌          | ✅      |
 
 ## Installation and Setup
 
@@ -76,6 +76,138 @@ usage: fovea [-h]
              [--list-models] [--list-langs] [--list-ocr-langs]
              [files [files ...]]
 ````
+
+### Labels
+
+If no other flags are set, `--labels` is set by default, and `--provider` is set to `google`. `fovea <file> [files...]`
+
+````bash
+[user@host]$ fovea http://omp.gso.uri.edu/ompweb/doee/biota/inverts/cten/pleur.jpg
+0.7646665	biology
+0.7288878	organism
+0.616781	invertebrate
+0.5076378	deep sea fish
+````
+
+The provider argument make it possible to use a different API. `fovea --provider <provider> --labels <file> [files ...]`
+
+````bash
+fovea --provider clarifai http://omp.gso.uri.edu/ompweb/doee/biota/inverts/cten/pleur.jpg
+0.9975493	invertebrate
+0.9917823	science
+0.9688578	no person
+0.968811	desktop
+0.95823973	biology
+[...snip...]
+````
+
+### Label i18n
+
+Several providers offer label translations, and all default to English (en). Learn which languages a given provider supports with the list `--list-langs` flag.
+
+````bash
+[user@host]$ fovea --provider microsoft --list-langs
+en
+zh
+````
+
+From the list of vendor-supported languages, set the desired language with the `--lang` argument.
+
+````bash
+[user@host]$ fovea http://omp.gso.uri.edu/ompweb/doee/biota/inverts/cten/pleur.jpg --provider clarifai --lang ar
+0.9975493	لافقاريات
+0.9917823	العلوم
+0.9688578	لا يجوز لأي شخص
+0.968811	خلفية حاسوب
+0.95823973	علم الاحياء
+0.9574139	استكشاف
+````
+
+### Faces
+
+Most vendors support face detection. Setting the `--face` flag will return a newline-separated list of bounding boxes. Bounding boxes are represented as four values: (left-x, top-y, width, height).
+
+````bash
+[useer@host]$ fovea --provider amazon --faces examples/face-detection/7.png
+1145	51	125	125
+775	112	125	125
+1703	116	123	123
+528	89	116	119
+354	63	110	110
+1506	91	106	106
+55	72	101	102
+````
+
+### Landmarks
+
+At present, only Google supports landmark and location detection. 
+
+````bash
+[user@host]$ fovea --landmarks ../ex/rattlesnake-ledge.jpg
+0.35423633	Rattlesnake Lake	47.436158,-121.77812576293945
+````
+
+### OCR
+
+OCR is only supported in the JSON output mode.
+
+````bash
+[user@host]$ fovea --text --output json turkish-road-sign.jpg
+[...snip...]
+                {
+                    "description": "Tatlisu",
+                    "boundingPoly": {
+                        "vertices": [
+                            {
+                                "x": 174,
+                                "y": 133
+                            },
+                            {
+                                "x": 500,
+                                "y": 133
+                            },
+                            {
+                                "x": 500,
+                                "y": 205
+                            },
+                            {
+                                "x": 174,
+                                "y": 205
+                            }
+                        ]
+                    }
+                },
+[...snip...]
+````
+
+### Emotions
+
+### Description
+
+### Adult
+
+The parameters for NSFW and Adult image detection vary a bit between vendors.
+
+```bash
+[user@host]$ fovea --adult --provider google test.jpg
+0.25	nsfw
+
+[user@host]$ fovea --adult --provider clarifai test.jpg
+0.9933746	sfw
+0.006625366	nsfw
+
+[user@host]$ fovea --adult --provider microsoft test.jpg
+0.12925413250923157	nsfw
+0.07490675896406174	racy
+````
+
+### Categories
+
+### Image Type
+
+### Color
+
+### Celebrities
 
 ## Examples
 

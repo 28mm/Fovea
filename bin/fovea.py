@@ -30,6 +30,8 @@ WATSON_CV_KEY      = None
 CLARIFAI_CLIENT_ID = None
 CLARIFAI_CLIENT_SECRET = None
 CLARIFAI_ACCESS_TOKEN  = None
+IMAGGA_ID          = None
+IMAGGA_SECRET      = None
 FB_USER_ID         = None
 FB_PHOTOS_TOKEN    = None
 
@@ -110,14 +112,16 @@ def main():
                      'opencv'    : OpenCV,
                      'watson'    : Watson,
                      'clarifai'  : Clarifai,
-                     'facebook'  : Facebook }
+                     'facebook'  : Facebook,
+                     'imagga'    : Imagga }
 
     # Provider Options
     parser.add_argument('--provider',
                         dest='provider',
                         choices=[ 'google', 'microsoft',  \
                                   'amazon', 'opencv',     \
-                                  'watson', 'clarifai', 'facebook' ],
+                                  'watson', 'clarifai',   \
+                                  'imagga', 'facebook' ],
                         default='google')
 
     # Output Options
@@ -199,12 +203,14 @@ def main():
         args.labels = True
 
     # Give precedence to credentials set as environment variables.
-    for cred in ['GOOG_CV_KEY', 'MSFT_CV_KEY', 'AWS_CV_KEY_ID',
-                 'AWS_CV_KEY_SECRET', 'AWS_CV_REGION',
+    for cred in ['GOOG_CV_KEY',
+                 'MSFT_CV_KEY',
+                 'AWS_CV_KEY_ID', 'AWS_CV_KEY_SECRET', 'AWS_CV_REGION',
                  'FB_USER_ID', 'FB_PHOTOS_TOKEN',
                  'WATSON_CV_URL', 'WATSON_CV_KEY',
                  'CLARIFAI_CLIENT_ID', 'CLARIFAI_CLIENT_SECRET',
-                 'CLARIFAI_ACCESS_TOKEN']:
+                 'CLARIFAI_ACCESS_TOKEN',
+                 'IMAGGA_ID', 'IMAGGA_SECRET' ]:
         if cred in os.environ:
             globals()[cred] = os.environ[cred]
 
@@ -290,6 +296,16 @@ def main():
 
             elif args.provider == 'opencv':
                 query = OpenCV(image, faces=args.faces)
+
+            elif args.provider == 'imagga':
+                if args.lang not in Imagga.label_langs:
+                    raise
+
+                query = Imagga(image,
+                               { 'IMAGGA_ID' : IMAGGA_ID,
+                                 'IMAGGA_SECRET' : IMAGGA_SECRET },
+                               labels=args.labels,
+                               label_lang=args.lang)
 
             query.run()
 
@@ -1212,6 +1228,115 @@ class Clarifai(Query):
             height = int((f['bottom_row'] * self.height) - top)
             r.append(str(left) + '\t' + str(top) + '\t' \
                      + str(width) + '\t' + str(height))
+        return r
+
+class Imagga(Query):
+
+    label_langs = [
+        'ar', # Arabic
+        'bg', # Bulgarian
+        'bs', # Bosnian
+        'en', # (default) 	English
+        'ca', # Catalan
+        'cs', # Czech
+        'cy', #	Welsh
+        'da', #	Danish
+        'de', #	German
+        'el', #	Greek
+        'es', #	Spanish
+        'et', #	Estonian
+        'fa', #	Persian
+        'fi', # Finnish
+        'fr', # French
+        'he', # Hebrew
+        'hi', # Hindi
+        'hr', # Croatian
+        'ht', # Haitian Creole
+        'hu', # Hungarian
+        'id', # Indonesian
+        'it', # Italian
+        'ja', # Japanese
+        'ko', # Korean
+        'lt', # Lithuanian
+        'lv', # Latvian
+        'ms', # Malay
+        'mt', # Maltese
+        'mww', # Hmong Daw
+        'nl', # Dutch
+        'no', # Norwegian
+        'otq', # Querétaro Otomi
+        'pl', # Polish
+        'pt', # Portuguese
+        'ro', # Romanian
+        'ru', # Russian
+        'sk', # Slovak
+        'sv', # Swedish
+        'sl', # Slovenian
+        'sr_cyrl', # Serbian - Cyrillic
+        'sr_latn', # Serbian - Latin
+        'th', # Thai
+        'tlh', # Klingon
+        'tlh_qaak', # Klingon (pIqaD)
+        'tr', # Turkish
+        'uk', # Ukrainian
+        'ur', #	Urdu
+        'vi', #	Vietnamese
+        'yua', # Yucatec Maya
+        'zh_chs', # Chinese Simplified
+        'zh_cht' # Chinese Traditional
+    ]
+
+    def __init__(self, image, credentials, labels=True, label_lang='en'):
+        self.image         = image
+        self.IMAGGA_ID     = credentials['IMAGGA_ID']
+        self.IMAGGA_SECRET = credentials['IMAGGA_SECRET']
+        self._labels       = True
+        self.label_lang    = label_lang
+
+    def run(self):
+
+        auth = ( self.IMAGGA_ID, self.IMAGGA_SECRET)
+
+        # FIXME shared with Watson.
+        if is_jpg(self.image):
+            image_mime  = 'image/jpeg'
+            image_fname = 'name.jpg'
+        elif is_png(self.image):
+            image_mime = 'image/png'
+            image_fname = 'name.png'
+        else:
+            raise # FIXME better checking of supported filetypes.
+
+        f = BytesFile(self.image, filename=image_fname)
+
+        # 1st: POST to /content to obtain a url/content_id
+        r = requests.post('https://api.imagga.com/v1/content',
+                          auth=auth,
+                          files={ 'image' : ( f.name, f, image_mime ) })
+        content_id = json.loads(r.text)['uploaded'][0]['id']
+
+        # 2nd GET from /tagging
+        params = {
+            'language' : self.label_lang,
+            'content'  : content_id
+        }
+
+        r = requests.get('https://api.imagga.com/v1/tagging',
+                         auth=auth, params=params)
+
+        self._json = json.loads(r.text)
+
+
+    @empty_unless('_labels')
+    def labels(self):
+        return self._json['results'][0]['tags']
+
+    def tabular(self, confidence=0.0):
+        r = []
+        for l in self.labels():
+            r.append(str(l['confidence'] / 100.) + '\t' + l['tag'])
+
+
         return r
 
 class Facebook(Query):

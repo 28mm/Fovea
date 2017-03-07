@@ -140,6 +140,12 @@ def main():
                         dest='ocr_lang',
                         default=None)
 
+    # Max Labels
+    parser.add_argument('--max-labels',
+                        dest='max_labels',
+                        type=int,
+                        default=10)
+
     # Query Options (after parsing, default to labels if none are set.)
     flags=[ 'labels',      # MSFT GOOG AMZN         WATSON CLARIFAI
             'faces',       # MSFT GOOG AMZN OPENCV         CLARIFAI
@@ -223,12 +229,13 @@ def main():
 
             if args.provider == 'google':
                 query = Google(image,
-                            GOOG_CV_KEY,
-                            labels=args.labels,
-                            landmarks=args.landmarks,
-                            faces=args.faces,
-                            text=args.text,
-                            adult=args.adult)
+                               GOOG_CV_KEY,
+                               labels=args.labels,
+                               landmarks=args.landmarks,
+                               faces=args.faces,
+                               text=args.text,
+                               adult=args.adult,
+                               max_labels=args.max_labels)
 
             elif args.provider == 'microsoft':
 
@@ -243,26 +250,28 @@ def main():
                 ocr_lang   = args.ocr_lang if args.ocr_lang else 'unk'
 
                 query = Microsoft(image,
-                               MSFT_CV_KEY,
-                               labels=args.labels,
-                               faces=args.faces,
-                               emotions=args.emotions,
-                               description=args.description,
-                               categories=args.categories,
-                               image_type=args.image_type,
-                               color=args.color,
-                               adult=args.adult,
-                               text=args.text,
-                               celebrities=args.celebrities,
-                               label_lang=label_lang,
-                               ocr_lang=ocr_lang)
+                                  MSFT_CV_KEY,
+                                  labels=args.labels,
+                                  faces=args.faces,
+                                  emotions=args.emotions,
+                                  description=args.description,
+                                  categories=args.categories,
+                                  image_type=args.image_type,
+                                  color=args.color,
+                                  adult=args.adult,
+                                  text=args.text,
+                                  celebrities=args.celebrities,
+                                  label_lang=label_lang,
+                                  ocr_lang=ocr_lang,
+                                  max_labels=args.max_labels)
 
             elif args.provider == 'amazon':
                 query = Amazon(image,
                                AWS_CV_KEY_ID,
                                AWS_CV_KEY_SECRET,
                                labels=args.labels,
-                               faces=args.faces)
+                               faces=args.faces,
+                               max_labels=args.max_labels)
 
             elif args.provider == 'watson':
                 if args.lang not in Watson.label_langs:
@@ -274,7 +283,8 @@ def main():
                                labels=args.labels,
                                categories=args.categories,
                                faces=args.faces,
-                               label_lang=args.lang)
+                               label_lang=args.lang,
+                               max_labels=args.max_labels)
 
             elif args.provider == 'clarifai':
                 # Make sure we have sane language defaults
@@ -289,7 +299,8 @@ def main():
                                  faces=args.faces,
                                  adult=args.adult,
                                  models=args.models,
-                                 label_lang=args.lang)
+                                 label_lang=args.lang,
+                                 max_labels=args.max_labels)
 
             elif args.provider == 'facebook':
                 raise
@@ -305,7 +316,8 @@ def main():
                                { 'IMAGGA_ID' : IMAGGA_ID,
                                  'IMAGGA_SECRET' : IMAGGA_SECRET },
                                labels=args.labels,
-                               label_lang=args.lang)
+                               label_lang=args.lang,
+                               max_labels=args.max_labels)
 
             query.run()
 
@@ -427,7 +439,7 @@ class Microsoft(Query):
                  labels=True, faces=False, emotions=False, celebrities=False,
                  description=False, categories=False, image_type=False,
                  color=False, adult=False, text=False,
-                 label_lang='en', ocr_lang='unk'):
+                 label_lang='en', ocr_lang='unk', max_labels=10):
 
         self.api_key      = api_key
 
@@ -444,6 +456,7 @@ class Microsoft(Query):
         self._text        = text        # ocr
         self.label_lang   = label_lang
         self.ocr_lang     = ocr_lang
+        self.max_labels   = max_labels
 
     ########################################################################
     # Query Execution ######################################################
@@ -521,9 +534,13 @@ class Microsoft(Query):
 
     def tabular(self, confidence=0.0):
         r = []
+        l_count = 0
 
         for l in self.labels():
             if l['confidence'] > confidence:
+                if l_count == self.max_labels:
+                    break
+                l_count += 1
                 r.append(str(l['confidence']) + '\t' + l['name'])
 
         for l in self.categories():
@@ -557,7 +574,8 @@ class Amazon(Query):
                  aws_key_id,
                  aws_key_secret,
                  aws_region='us-west-2',
-                 labels=True, faces=False):
+                 labels=True, faces=False,
+                 max_labels=10):
 
         self.AWS_KEY_ID     = aws_key_id
         self.AWS_KEY_SECRET = aws_key_secret
@@ -573,6 +591,7 @@ class Amazon(Query):
         self._faces    = faces
         self._json     = None
 
+        self.max_labels = max_labels
 
         # Use OpenCV to obtain image dimensions.
         # Amazon reports face bounding boxes as ratios
@@ -703,8 +722,12 @@ class Amazon(Query):
     def tabular(self, confidence=0.0):
         '''Returns a list of strings to print.'''
         r = []
+        l_count = 0
         for label in self.labels():
+            if l_count == self.max_labels:
+                break
             if label['Confidence'] / 100. > confidence:
+                l_count+=1
                 r.append(str(label['Confidence'] / 100.) + '\t' + label['Name'])
 
         # Rekognition gives bounding box locations and dimensions
@@ -793,7 +816,8 @@ class Google(Query):
 
     def __init__(self, image, api_key,
                  labels=True, landmarks=False, faces=False,
-                 text=False, adult=False, confidence=0.0):
+                 text=False, adult=False, confidence=0.0,
+                 max_labels=10):
 
         self._GOOG_CV_URL = "https://vision.googleapis.com/" \
                            +"v1/images:annotate?key="        \
@@ -807,18 +831,19 @@ class Google(Query):
         self._text      = text
         self._adult     = adult
         self._json      = None
+        self.max_labels = max_labels
 
 
     ########################################################################
     # Query Execution ######################################################
 
     def run(self):
-        max_results = 10
         features    = []
+        max_results = 100
 
         if self._labels is True:
             features.append({ 'type' : 'LABEL_DETECTION',
-                              'maxResults' : max_results })
+                              'maxResults' : self.max_labels })
         if self._landmarks is True:
             features.append({ 'type' : 'LANDMARK_DETECTION',
                               'maxResults' : max_results })
@@ -959,7 +984,7 @@ class Watson(Query):
                     'ar',  # (Arabic)
                     'ja' ] # (Japanese)
 
-    def __init__(self, image, api_url, api_key, labels=True, categories=False, faces=False, label_lang='en'):
+    def __init__(self, image, api_url, api_key, labels=True, categories=False, faces=False, label_lang='en', max_labels=10):
         self.api_url     = api_url
         self.api_key     = api_key
         self.image       = image
@@ -968,6 +993,7 @@ class Watson(Query):
         self._faces      = faces
         self._json       = None
         self.label_lang  = label_lang
+        self.max_labels  = max_labels
 
     def run(self):
 
@@ -1039,8 +1065,12 @@ class Watson(Query):
         '''Returns a list of strings to print.'''
         r = []
 
+        l_count=0
         for label in self.labels():
+            if l_count == self.max_labels:
+                break
             if label['score'] > confidence:
+                l_count+=1
                 r.append(str(label['score']) + '\t' + label['class'])
 
         for label in self.categories():
@@ -1099,7 +1129,7 @@ class Clarifai(Query):
 
     def __init__(self, image, client_id, client_secret, access_token="",
                  labels=True, faces=False, adult=False, models=[],
-                 label_lang='en'):
+                 label_lang='en', max_labels=10):
 
         self.client_id     = client_id
         self.client_secret = client_secret
@@ -1111,6 +1141,7 @@ class Clarifai(Query):
         self._json         = None
         self._models       = [ 'general-v1.3' ] if models == [] else models
         self.label_lang    = label_lang
+        self.max_labels    = max_labels
         
         # Use OpenCV to obtain image dimensions.
         # Clarifai reports face bounding boxes as ratios
@@ -1216,8 +1247,12 @@ class Clarifai(Query):
     def tabular(self, confidence=0.0):
         r = []
 
+        l_count = 0
         for label in self.labels():
+            if l_count == self.max_labels:
+                break
             if label['value'] > confidence:
+                l_count += 1
                 r.append(str(label['value']) + '\t' + label['name'])
 
         for region in self.faces():
@@ -1286,12 +1321,13 @@ class Imagga(Query):
         'zh_cht' # Chinese Traditional
     ]
 
-    def __init__(self, image, credentials, labels=True, label_lang='en'):
+    def __init__(self, image, credentials, labels=True, label_lang='en', max_labels=10):
         self.image         = image
         self.IMAGGA_ID     = credentials['IMAGGA_ID']
         self.IMAGGA_SECRET = credentials['IMAGGA_SECRET']
         self._labels       = True
         self.label_lang    = label_lang
+        self.max_labels    = max_labels
 
     def run(self):
 
@@ -1333,8 +1369,14 @@ class Imagga(Query):
 
     def tabular(self, confidence=0.0):
         r = []
+
+        l_count=0
         for l in self.labels():
-            r.append(str(l['confidence'] / 100.) + '\t' + l['tag'])
+            if l_count == self.max_labels:
+                break
+            if l['confidence'] / 100. > confidence:
+                l_count+=1
+                r.append(str(l['confidence'] / 100.) + '\t' + l['tag'])
 
 
         return r

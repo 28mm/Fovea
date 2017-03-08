@@ -390,7 +390,7 @@ class Query(metaclass=ABCMeta):
                        7 : '{0:.7f}',
                        8 : '{0:.8f}',
                        9 : '{0:.9f}',
-                       10 : '{0.10f}' }
+                       10 : '{0:.10f}' }
 
     #
     # Possible Query Features.

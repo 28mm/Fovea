@@ -146,6 +146,12 @@ def main():
                         type=int,
                         default=10)
 
+    # Precision of Confidence Scores
+    parser.add_argument('--precision',
+                        dest='precision',
+                        type=int,
+                        default=2)
+
     # Query Options (after parsing, default to labels if none are set.)
     flags=[ 'labels',      # MSFT GOOG AMZN         WATSON CLARIFAI
             'faces',       # MSFT GOOG AMZN OPENCV         CLARIFAI
@@ -235,7 +241,8 @@ def main():
                                faces=args.faces,
                                text=args.text,
                                adult=args.adult,
-                               max_labels=args.max_labels)
+                               max_labels=args.max_labels,
+                               precision=args.precision)
 
             elif args.provider == 'microsoft':
 
@@ -263,7 +270,8 @@ def main():
                                   celebrities=args.celebrities,
                                   label_lang=label_lang,
                                   ocr_lang=ocr_lang,
-                                  max_labels=args.max_labels)
+                                  max_labels=args.max_labels,
+                                  precision=args.precision)
 
             elif args.provider == 'amazon':
                 query = Amazon(image,
@@ -271,7 +279,8 @@ def main():
                                AWS_CV_KEY_SECRET,
                                labels=args.labels,
                                faces=args.faces,
-                               max_labels=args.max_labels)
+                               max_labels=args.max_labels,
+                               precision=args.precision)
 
             elif args.provider == 'watson':
                 if args.lang not in Watson.label_langs:
@@ -284,7 +293,8 @@ def main():
                                categories=args.categories,
                                faces=args.faces,
                                label_lang=args.lang,
-                               max_labels=args.max_labels)
+                               max_labels=args.max_labels,
+                               precision=args.precision)
 
             elif args.provider == 'clarifai':
                 # Make sure we have sane language defaults
@@ -300,7 +310,8 @@ def main():
                                  adult=args.adult,
                                  models=args.models,
                                  label_lang=args.lang,
-                                 max_labels=args.max_labels)
+                                 max_labels=args.max_labels,
+                                 precision=args.precision)
 
             elif args.provider == 'facebook':
                 raise
@@ -317,7 +328,8 @@ def main():
                                  'IMAGGA_SECRET' : IMAGGA_SECRET },
                                labels=args.labels,
                                label_lang=args.lang,
-                               max_labels=args.max_labels)
+                               max_labels=args.max_labels,
+                               precision=args.precision)
 
             query.run()
 
@@ -368,6 +380,17 @@ class Query(metaclass=ABCMeta):
     url_support = False    # image can be given as a url
     label_langs = [ 'en' ] # supported classifier languages
     ocr_langs   = []       # supported ocr languages
+
+    precision_fmts = { 1 : '{0:.1f}',
+                       2 : '{0:.2f}',
+                       3 : '{0:.3f}',
+                       4 : '{0:.4f}',
+                       5 : '{0:.5f}',
+                       6 : '{0:.6f}',
+                       7 : '{0:.7f}',
+                       8 : '{0:.8f}',
+                       9 : '{0:.9f}',
+                       10 : '{0.10f}' }
 
     #
     # Possible Query Features.
@@ -439,7 +462,8 @@ class Microsoft(Query):
                  labels=True, faces=False, emotions=False, celebrities=False,
                  description=False, categories=False, image_type=False,
                  color=False, adult=False, text=False,
-                 label_lang='en', ocr_lang='unk', max_labels=10):
+                 label_lang='en', ocr_lang='unk', max_labels=10,
+                 precision=2):
 
         self.api_key      = api_key
 
@@ -457,6 +481,8 @@ class Microsoft(Query):
         self.label_lang   = label_lang
         self.ocr_lang     = ocr_lang
         self.max_labels   = max_labels
+        self.precision    = precision
+        self.prec_fmt = Query.precision_fmts[precision]
 
     ########################################################################
     # Query Execution ######################################################
@@ -541,21 +567,21 @@ class Microsoft(Query):
                 if l_count == self.max_labels:
                     break
                 l_count += 1
-                r.append(str(l['confidence']) + '\t' + l['name'])
+                r.append(self.prec_fmt.format(l['confidence']) + '\t' + l['name'])
 
         for l in self.categories():
             if l['score'] > confidence:
-                r.append(str(l['score']) + '\t' + l['name'])
+                r.append(self.prec_fmt.format(l['score']) + '\t' + l['name'])
 
         for l in self.description():
             if l['confidence'] > confidence:
-                r.append(str(l['confidence']) + '\t' + l['text'])
+                r.append(self.prec_fmt.format(l['confidence']) + '\t' + l['text'])
 
         # FIXME apply confidence here, also?
         adult = self.adult() # FIXME do better
         if adult != []:
-            r.append(str(adult['adultScore']) + '\t' + 'nsfw')
-            r.append(str(adult['racyScore'])  + '\t' + 'racy')
+            r.append(self.prec_fmt.format(adult['adultScore']) + '\t' + 'nsfw')
+            r.append(self.prec_fmt.format(adult['racyScore'])  + '\t' + 'racy')
 
         for l in self.faces():
             rect = l['faceRectangle']
@@ -575,7 +601,8 @@ class Amazon(Query):
                  aws_key_secret,
                  aws_region='us-west-2',
                  labels=True, faces=False,
-                 max_labels=10):
+                 max_labels=10,
+                 precision=2):
 
         self.AWS_KEY_ID     = aws_key_id
         self.AWS_KEY_SECRET = aws_key_secret
@@ -592,6 +619,8 @@ class Amazon(Query):
         self._json     = None
 
         self.max_labels = max_labels
+        self.precision  = precision
+        self.prec_fmt = Query.precision_fmts[precision]
 
         # Use OpenCV to obtain image dimensions.
         # Amazon reports face bounding boxes as ratios
@@ -728,7 +757,8 @@ class Amazon(Query):
                 break
             if label['Confidence'] / 100. > confidence:
                 l_count+=1
-                r.append(str(label['Confidence'] / 100.) + '\t' + label['Name'])
+                r.append(self.prec_fmt.format(label['Confidence'] / 100.) \
+                         + '\t' + label['Name'])
 
         # Rekognition gives bounding box locations and dimensions
         # as ratios to overal image dimensions.
@@ -817,7 +847,7 @@ class Google(Query):
     def __init__(self, image, api_key,
                  labels=True, landmarks=False, faces=False,
                  text=False, adult=False, confidence=0.0,
-                 max_labels=10):
+                 max_labels=10, precision=2):
 
         self._GOOG_CV_URL = "https://vision.googleapis.com/" \
                            +"v1/images:annotate?key="        \
@@ -832,6 +862,8 @@ class Google(Query):
         self._adult     = adult
         self._json      = None
         self.max_labels = max_labels
+        self.precision  = precision
+        self.prec_fmt   = Query.precision_fmts[precision]
 
 
     ########################################################################
@@ -898,7 +930,7 @@ class Google(Query):
         r = []
         for l in self.labels():
             if l['score'] > confidence:
-                r.append(str(l['score']) + '\t' + l['description'])
+                r.append(self.prec_fmt.format(l['score']) + '\t' + l['description'])
 
         adult = self.adult()
         if adult:
@@ -984,7 +1016,7 @@ class Watson(Query):
                     'ar',  # (Arabic)
                     'ja' ] # (Japanese)
 
-    def __init__(self, image, api_url, api_key, labels=True, categories=False, faces=False, label_lang='en', max_labels=10):
+    def __init__(self, image, api_url, api_key, labels=True, categories=False, faces=False, label_lang='en', max_labels=10, precision=2):
         self.api_url     = api_url
         self.api_key     = api_key
         self.image       = image
@@ -994,6 +1026,8 @@ class Watson(Query):
         self._json       = None
         self.label_lang  = label_lang
         self.max_labels  = max_labels
+        self.precision   = precision
+        self.prec_fmt    = Query.precision_fmts[precision]
 
     def run(self):
 
@@ -1071,11 +1105,13 @@ class Watson(Query):
                 break
             if label['score'] > confidence:
                 l_count+=1
-                r.append(str(label['score']) + '\t' + label['class'])
+                r.append(self.prec_fmt.format(label['score']) \
+                         + '\t' + label['class'])
 
         for label in self.categories():
             if label['score'] > confidence:
-                r.append(str(label['score']) + '\t' \
+                r.append(self.prec_fmt.format(label['score']) \
+                         + '\t' \
                          + label['type_hierarchy'])
 
         for f in self.faces():
@@ -1129,7 +1165,7 @@ class Clarifai(Query):
 
     def __init__(self, image, client_id, client_secret, access_token="",
                  labels=True, faces=False, adult=False, models=[],
-                 label_lang='en', max_labels=10):
+                 label_lang='en', max_labels=10, precision=2):
 
         self.client_id     = client_id
         self.client_secret = client_secret
@@ -1142,6 +1178,8 @@ class Clarifai(Query):
         self._models       = [ 'general-v1.3' ] if models == [] else models
         self.label_lang    = label_lang
         self.max_labels    = max_labels
+        self.precision     = precision
+        self.prec_fmt      = Query.precision_fmts[precision]
         
         # Use OpenCV to obtain image dimensions.
         # Clarifai reports face bounding boxes as ratios
@@ -1253,7 +1291,9 @@ class Clarifai(Query):
                 break
             if label['value'] > confidence:
                 l_count += 1
-                r.append(str(label['value']) + '\t' + label['name'])
+                r.append(self.prec_fmt.format(label['value']) \
+                         + '\t'                          \
+                         + label['name'])
 
         for region in self.faces():
             f = region['region_info']['bounding_box']
@@ -1321,13 +1361,15 @@ class Imagga(Query):
         'zh_cht' # Chinese Traditional
     ]
 
-    def __init__(self, image, credentials, labels=True, label_lang='en', max_labels=10):
+    def __init__(self, image, credentials, labels=True, label_lang='en', max_labels=10, precision=2):
         self.image         = image
         self.IMAGGA_ID     = credentials['IMAGGA_ID']
         self.IMAGGA_SECRET = credentials['IMAGGA_SECRET']
         self._labels       = True
         self.label_lang    = label_lang
         self.max_labels    = max_labels
+        self.precision     = precision
+        self.prec_fmt      = Query.precision_fmts[precision]
 
     def run(self):
 
@@ -1376,7 +1418,7 @@ class Imagga(Query):
                 break
             if l['confidence'] / 100. > confidence:
                 l_count+=1
-                r.append(str(l['confidence'] / 100.) + '\t' + l['tag'])
+                r.append(self.prec_fmt.format(l['confidence'] / 100.) + '\t' + l['tag'])
 
 
         return r

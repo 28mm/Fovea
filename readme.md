@@ -26,6 +26,7 @@ The table below characterizes Fovea's current feature coverage. Most vendors off
 | [Image Type](#image-type)            |        | ✅️       |        |          |        |        |         | ❌          | ✅️    ️|
 | [Color](#color)                 |        | ✅️️       |        | ❌       |        | ❌       |         | ❌          | ✅️️    |
 | [Celebrities](#celebrities)           |        | ✅       |        | ✅️       | ✅     |        |         | ✅️          | ✅      |
+
 ✅ indicates a working feature, ❌ indicates a missing feature, and empty-cells represent features not supported by a particular vendor.
 
 ## Installation and Setup

@@ -1,14 +1,12 @@
 
-# Fovea
+<p align=center>
+<img src="examples/tty.gif">
+</p>
 
 Fovea is a unified command-line interface to computer vision APIs from [Google](https://cloud.google.com/vision/docs/), [Microsoft](https://www.microsoft.com/cognitive-services/en-us/computer-vision-api), [AWS](https://aws.amazon.com/rekognition/), [Clarifai](https://developer.clarifai.com/), [Imagga](https://wwww.imagga.com/), and [IBM Watson](https://www.ibm.com/watson/developercloud/visual-recognition.html). Use Fovea if you want to:
 
 1.	Easily classify images in a shell script.
 2.	Compare alternative computer vision apis.
-
-<p align=center>
-<img src="examples/tty.gif">
-</p>
 
 The table below characterizes Fovea's current feature coverage. Most vendors offer broadly similar features, but their output formats differ. Where possible, Fovea uses a tabular output mode suitable for interactive shell sessions, and scripts. If a particular feature is not supported by this tabular output mode, vendor-specific JSON is available, instead. 
 

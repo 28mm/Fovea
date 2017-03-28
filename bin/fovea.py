@@ -496,10 +496,11 @@ class Microsoft(Query):
         features += 'Categories,'  if self._categories  is True else ''
         features += 'Tags,'        if self._labels      is True else ''
         features += 'Description,' if self._description is True else ''
-        features += 'Faces,'       if self._faces       is True else ''
         features += 'ImageType,'   if self._image_type  is True else ''
         features += 'Color,'       if self._color       is True else ''
         features += 'Adult,'       if self._adult       is True else ''
+        features += 'Faces,' if self._faces is True or self._celebrities is True else ''
+
         if len(features) > 0:
             features = features.rstrip(',')
 
@@ -552,6 +553,10 @@ class Microsoft(Query):
     def faces(self):
         return self._json['faces']
 
+    @empty_unless('_celebrities')
+    def celebrities(self):
+        return [ x['detail']['celebrities'] for x in self._json['categories'] if x['name'].startswith('people_') ][0]
+
     @empty_unless('_adult')
     def adult(self):
         return self._json['adult']
@@ -591,6 +596,17 @@ class Microsoft(Query):
                      + '\t' + str(rect['height'])) 
                #   + '\t' + l['gender']                             \
                #   + '\t' + str(l['age']))
+
+        for l in self.celebrities():
+            if l['confidence'] < confidence:
+              continue
+            rect = l['faceRectangle']
+            r.append(str(rect['left']) + '\t' + str(rect['top'])    \
+                     + '\t' + str(rect['width'])                    \
+                     + '\t' + str(rect['height'])                   \
+                     + '\t' + self.prec_fmt.format(l['confidence']) \
+                     + '\t' + 'xxxxx'                               \
+                     + '\t' + l['name'])
 
         return r
 

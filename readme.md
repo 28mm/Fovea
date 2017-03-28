@@ -1,16 +1,16 @@
 
 # Fovea
 
-`fo·ve·a: A small depression in the retina of the eye where visual acuity is highest. The center of the field of vision is focused in this region, where retinal cones are particularly concentrated.`
+Fovea is a unified command-line interface to computer vision APIs from [Google](https://cloud.google.com/vision/docs/), [Microsoft](https://www.microsoft.com/cognitive-services/en-us/computer-vision-api), [AWS](https://aws.amazon.com/rekognition/), [Clarifai](https://developer.clarifai.com/), [Imagga](https://wwww.imagga.com/), and [IBM Watson](https://www.ibm.com/watson/developercloud/visual-recognition.html). Use Fovea if you want to:
 
-## Introduction
+1.	Easily classify images in a shell script.
+2.	Compare alternative computer vision apis.
 
-Fovea provides a unified command line interface to computer vision APIs from [Google](https://cloud.google.com/vision/docs/), [Microsoft](https://www.microsoft.com/cognitive-services/en-us/computer-vision-api), [AWS](https://aws.amazon.com/rekognition/), [Clarifai](https://developer.clarifai.com/), [Imagga](https://wwww.imagga.com/), and [IBM Watson](https://www.ibm.com/watson/developercloud/visual-recognition.html). Use Fovea if you want to:
+<p align=center>
+<img src="examples/tty.gif">
+</p>
 
-1.	Easily classify images in a shell script. See: [examples](#examples).
-2.	Compare the functionality or acuity of alternative computer vision apis.
-
-Fovea provides a standardized tabular output mode, suitable for interactive shell sessions or scripts. Where Fovea's simplified tabular output is inadequate, use its json output mode to get vendor-specific json, instead. The table below attempts to characterize the current status of Fovea's feature coverage. 
+The table below characterizes Fovea's current feature coverage. Most vendors offer broadly similar features, but their output formats differ. Where possible, Fovea uses a tabular output mode suitable for interactive shell sessions, and scripts. If a particular feature is not supported by this tabular output mode, vendor-specific JSON is available, instead. 
 
 | Feature               | Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
 | ---:                  |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
@@ -25,7 +25,8 @@ Fovea provides a standardized tabular output mode, suitable for interactive shel
 | [Categories](#categories)            |        | ✅️️       |        |          | ✅️️     |        |         | ✅️️          | ✅️️    |
 | [Image Type](#image-type)            |        | ✅️       |        |          |        |        |         | ❌          | ✅️    ️|
 | [Color](#color)                 |        | ✅️️       |        | ❌       |        | ❌       |         | ❌          | ✅️️    |
-| [Celebrities](#celebrities)           |        | ✅       |        | ❌       | ✅     |        |         | ❌          | ✅      |
+| [Celebrities](#celebrities)           |        | ✅       |        | ✅️       | ✅     |        |         | ✅️          | ✅      |
+✅ indicates a working feature, ❌ indicates a missing feature, and empty-cells represent features not supported by a particular vendor.
 
 ## Installation and Setup
 
@@ -38,7 +39,7 @@ Clone the Fovea repository, install its dependencies, and source its environment
 [user@host]$ source fovea-env.sh 
 `````
 
-Credentials are required to use web services from most providers. Most offer a rate-limited free tier for trial or low-volume users. Refer to the links below to obtain the needed credentials.
+Obtain credentials for the web services you plan to use. These should be supplied to Fovea via environment variables. See `fovea-env.sh` for a template.
 
  * Google Cloud Vision API: [https://cloud.google.com/vision/docs/](https://cloud.google.com/vision/docs/)
  * Microsoft Computer Vision API: [https://www.microsoft.com/cognitive-services/en-us/computer-vision-api](https://www.microsoft.com/cognitive-services/en-us/computer-vision-api)
@@ -47,7 +48,6 @@ Credentials are required to use web services from most providers. Most offer a r
  * Clarifai: [https://developer.clarifai.com/](https://developer.clarifai.com/)
  * Imagga: [https://docs.imagga.com](https://docs.imagga.com)
 
-Credentials should be supplied to Fovea via environment variables. See `fovea-env.sh` for a template.
 
 ````bash
 export GOOG_CV_KEY=""
@@ -67,14 +67,46 @@ export IMAGGA_SECRET=""
 ## Usage
 ````bash
 usage: fovea [-h]
-             [--provider {google,microsoft,amazon,opencv,watson,clarifai,imagga}]
+             [--provider {google,microsoft,amazon,opencv,watson,clarifai,imagga,facebook}]
              [--output {tabular,json,yaml}] [--lang LANG]
-             [--ocr-lang OCR_LANG] [--labels] [--faces] [--text]
+             [--ocr-lang OCR_LANG] [--max-labels MAX_LABELS]
+             [--precision PRECISION] [--labels] [--faces] [--text]
              [--emotions] [--description] [--celebrities] [--adult]
              [--categories] [--image_type] [--color] [--landmarks]
              [--confidence confidence threshold] [--model MODELS]
              [--list-models] [--list-langs] [--list-ocr-langs]
              [files [files ...]]
+
+Classify image contents with the the Google, Microsoft, or Amazon Computer
+Vision APIs.
+
+positional arguments:
+  files
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --provider {google,microsoft,amazon,opencv,watson,clarifai,imagga,facebook}
+  --output {tabular,json,yaml}
+  --lang LANG
+  --ocr-lang OCR_LANG
+  --max-labels MAX_LABELS
+  --precision PRECISION
+  --labels
+  --faces
+  --text
+  --emotions
+  --description
+  --celebrities
+  --adult
+  --categories
+  --image_type
+  --color
+  --landmarks
+  --confidence confidence threshold
+  --model MODELS
+  --list-models
+  --list-langs
+  --list-ocr-langs
 ````
 
 ### Labels
@@ -83,21 +115,21 @@ If no other flags are set, `--labels` is set by default, and `--provider` is set
 
 ````bash
 [user@host]$ fovea http://omp.gso.uri.edu/ompweb/doee/biota/inverts/cten/pleur.jpg
-0.7646665	biology
-0.7288878	organism
-0.616781	invertebrate
-0.5076378	deep sea fish
+0.76	biology
+0.72	organism
+0.61	invertebrate
+0.50	deep sea fish
 ````
 
 The provider argument make it possible to use a different API. `fovea --provider <provider> --labels <file> [files ...]`
 
 ````bash
 fovea --provider clarifai http://omp.gso.uri.edu/ompweb/doee/biota/inverts/cten/pleur.jpg
-0.9975493	invertebrate
-0.9917823	science
-0.9688578	no person
-0.968811	desktop
-0.95823973	biology
+0.99	invertebrate
+0.99	science
+0.96	no person
+0.96	desktop
+0.95	biology
 [...snip...]
 ````
 
@@ -115,12 +147,12 @@ From the list of vendor-supported languages, set the desired language with the `
 
 ````bash
 [user@host]$ fovea http://omp.gso.uri.edu/ompweb/doee/biota/inverts/cten/pleur.jpg --provider clarifai --lang ar
-0.9975493	لافقاريات
-0.9917823	العلوم
-0.9688578	لا يجوز لأي شخص
-0.968811	خلفية حاسوب
-0.95823973	علم الاحياء
-0.9574139	استكشاف
+0.99	لافقاريات
+0.99	العلوم
+0.96	لا يجوز لأي شخص
+0.96	خلفية حاسوب
+0.95	علم الاحياء
+0.95	استكشاف
 ````
 
 ### Faces
@@ -144,138 +176,59 @@ At present, only Google supports landmark and location detection.
 
 ````bash
 [user@host]$ fovea --landmarks ../ex/rattlesnake-ledge.jpg
-0.35423633	Rattlesnake Lake	47.436158,-121.77812576293945
+0.35	Rattlesnake Lake	47.436158,-121.77812576293945
 ````
 
 ### OCR
 
-OCR is only supported in the JSON output mode.
-
-````bash
-[user@host]$ fovea --text --output json turkish-road-sign.jpg
-[...snip...]
-                {
-                    "description": "Tatlisu",
-                    "boundingPoly": {
-                        "vertices": [
-                            {
-                                "x": 174,
-                                "y": 133
-                            },
-                            {
-                                "x": 500,
-                                "y": 133
-                            },
-                            {
-                                "x": 500,
-                                "y": 205
-                            },
-                            {
-                                "x": 174,
-                                "y": 205
-                            }
-                        ]
-                    }
-                },
-[...snip...]
-````
+OCR is only supported in the JSON output mode, and its format is vendor specific.
 
 ### Emotions
 
+Emotion detection is only supported in the JSON output mode, and its format is vendor specific.
+
 ### Description
+
+Scene descriptions are only available in the JSON output mode, and its format is vendor specific.
 
 ### Adult
 
-The parameters for NSFW and Adult image detection vary a bit between vendors.
+The parameters for NSFW and Adult image detection vary a bit between vendors. The values for Google are fudged from likelihoods (VERY_LIKELY, LIKELY, VERY_UNLIKELY) to numeric values (0.01, 0.25, 0.50, 0.75, 0.99), in order to follow the convention established by other services.
 
 ```bash
 [user@host]$ fovea --adult --provider google test.jpg
 0.25	nsfw
 
 [user@host]$ fovea --adult --provider clarifai test.jpg
-0.9933746	sfw
-0.006625366	nsfw
+0.99	sfw
+0.01	nsfw
 
 [user@host]$ fovea --adult --provider microsoft test.jpg
-0.12925413250923157	nsfw
-0.07490675896406174	racy
+0.13	nsfw
+0.07	racy
 ````
 
 ### Categories
 
+Categoriziation is only available in the JSON output mode, and its format is vendor specific.
+
 ### Image Type
+
+Image type detection is only available in the JSON output mode, and its format is vendor specific.
 
 ### Color
 
+Dominant color detection is only available in the JSON output mode, and its format is vendor specific.
+
 ### Celebrities
 
-## Examples
-
- 1. [Face Detection](#face-detection)
- 1. [Instagram](#instagram)
-  
-### Face Detection
-
-In the example below (a still from the François Ozon film *8 femmes*), ImageMagick is used to draw a bounding box around the faces detected by six services. See `.../examples/face-detection` in the distribution directory for further details.
-
-The Google API returns better-centered and more inclusive bounding-boxes than those from any competing services. Others are cropped more radically to include only facial features. All of the services, including the free-to-use OpenCV Haar Cascade, find all seven faces.
-
-Google: `[user@host]$ fovea --provider google --faces file.png`
-![Google](examples/face-detection/7-google.png)
-
-Microsoft: `[user@host]$ fovea --provider microsoft --faces file.png`
-![Microsoft](examples/face-detection/7-microsoft.png)
-
-
-
-OpenCV: `[user@host]$ fovea --provider opencv --faces file.png`
-![OpenCV](examples/face-detection/7-opencv.png)
-
-Amazon: `[user@host]$ fovea --provider amazon --faces file.png`
-![Rekognition](examples/face-detection/7-amazon.png)
-
-Clarifai: `[user@host]$ fovea --provider clarifai --faces file.png`
-![Clarifai](examples/face-detection/7-clarifai.png)
-
-Watson: `[user@host]$ fovea --provider watson --faces file.png`
-![Watson](examples/face-detection/7-watson.png)
-
-### Instagram
-
-Instagram is an interesting source of example data. Accounts are often thematic, as are hashtags. Below are the top 20 labels applied to 400 images drawn from the [kimkardashian](https://www.instagram.com/kimkardashian/?hl=en) Instagram account. 
+Celebrity detection is supported by Microsoft, Watson, and Clarifai.
 
 ````bash
-[user@host]$ for provider in google amazon microsoft clarifai watson imagga
-> do
->     fovea --labels --provider $provider *.jpg | sed 's/0\.[0-9]*[[:space:]]*//g' | sort | uniq -c | sort -n | tail -20 > labels.$provider
-> done
+[user@host]$ fovea --celebrities 'https://timedotcom.files.wordpress.com/2016/08/barack-obama-michelle-obama-love-story-romance-photos-08.jpg?w=1200&quality=85&h=800' --provider microsoft
+432 134 148 148 0.95    xxxxx   Barack Hussein Obama
+279 191 117 117 1.00    xxxxx   Michelle Obama
 ````
-
-| Google              | Amazon     | Microsoft | Clarifai | Watson | Imagga |
-| :---              | :---         | :---         | :--- |  :---   | :--- |
-|   39 nose |   43 Maillot |   11 hair |   75 brunette | 22 overgarment | 264 model |
-|   39 spring |   45 Crowd |   12 water | 95 love  | 23 young lady (heroine) | 266 cute |
-|   40 brown hair |   47 Accessories |   13 ground | 96 recreation | 24 entertainer | 270 youth |
-|   42 face |   48 Head |   14 black |  102 group | 25 room | 267 lady | 
-|   42 long hair |   59 Smile |   14 floor | 109 glamour | 25 sweetheart | 272 fashion |
-|   50 lady |   60 Lingerie |   14 nature |  110 sexy | 26 alizarine red color | 268 man |
-|   51 leg |   61 Bra |   15 dressed |  113 dress | 26 sister | 282 casual | 
-|   55 supermodel |   62 Underwear |   16 crowd |  113 indoors |  28 maroon color | 304 women |
-|   56 black hair |   66 Dress |   18 man |  116 music | 28 undergarment | 305 smiling |
-|   57 model |   70 Girl |   24 beautiful |  118 facial expression | 34 Indian red color | 306 face |
-|   61 photo shoot |   82 Costume |   30 sky |  124 two | 37 dress |306 happiness |
-|   64 hairstyle |   86 Apparel |   30 standing |  152 man | 43 device | 320 lifestyle |
-|   64 photograph |  108 Woman |   35 clothing |  163 model | 51 gray color | 321 pretty |
-|   66 dress |  128 Face |   36 group |  169 one | 52 black color | 324 portrait |
-|   71 hair |  139 Clothing |   52 wall |  210 girl | 60 ivory color | 331 smile |
-|   76 photography |  170 Portrait |   53 people |  221 fashion | 75 female | 332 attractive |
-|   96 image |  199 Selfie |   81 outdoor |  263 wear | 83 people | 333 happy |
-|  103 beauty |  231 Female |   90 woman |  293 portrait | 94 woman | 336 caucasian |
-|  103 clothing |  342 Human |  124 posing |  318 adult | 95 garment | 340 adult |
-|  115 fashion |  344 People |  137 indoor |  337 woman | 139 coal black color |  348 person |
-|  124 person |  353 Person |  302 person | 352 people | 261 person |  349 people |
-
-
 
 
 

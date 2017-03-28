@@ -308,6 +308,7 @@ def main():
                                  labels=args.labels,
                                  faces=args.faces,
                                  adult=args.adult,
+                                 celebrities=args.celebrities,
                                  models=args.models,
                                  label_lang=args.lang,
                                  max_labels=args.max_labels,
@@ -1164,7 +1165,8 @@ class Clarifai(Query):
     ]
 
     def __init__(self, image, client_id, client_secret, access_token="",
-                 labels=True, faces=False, adult=False, models=[],
+                 labels=True, faces=False, adult=False, 
+                 celebrities=False, models=[],
                  label_lang='en', max_labels=10, precision=2):
 
         self.client_id     = client_id
@@ -1174,8 +1176,12 @@ class Clarifai(Query):
         self._labels       = labels
         self._faces        = faces
         self._adult        = adult
+        self._celebrities  = celebrities
         self._json         = None
-        self._models       = [ 'general-v1.3' ] if models == [] else models
+        self._models       = [ 'general-v1.3' ] if models       == []      \
+                                                and celebrities == False   \
+                                                and faces       == False   \
+                              else models
         self.label_lang    = label_lang
         self.max_labels    = max_labels
         self.precision     = precision
@@ -1242,6 +1248,7 @@ class Clarifai(Query):
             if not self._json:
                 self._json['labels'] = response_json
             else:
+                print(response_json)
                 old_concepts = self._json['labels']['outputs'][0]['data']['concepts']
                 new_concepts = response_json['outputs'][0]['data']['concepts']
 
@@ -1271,6 +1278,16 @@ class Clarifai(Query):
             response_json = json.loads(response.text)
             self._json['faces'] = response_json
 
+        if self._celebrities:
+          url = 'https://api.clarifai.com/v2/models/' \
+               + self.models['celeb-v1.3'] + '/outputs'
+
+          response = requests.post(url,
+                                   headers=headers,
+                                   data=json.dumps(data))
+          response_json = json.loads(response.text)
+          self._json['celebrities'] = response_json
+
 
 
 
@@ -1281,6 +1298,10 @@ class Clarifai(Query):
     @empty_unless('_faces')
     def faces(self):
         return self._json['faces']['outputs'][0]['data']['regions']
+
+    @empty_unless('_celebrities')
+    def celebrities(self):
+        return self._json['celebrities']['outputs'][0]['data']['regions']
 
     def tabular(self, confidence=0.0):
         r = []
@@ -1303,6 +1324,22 @@ class Clarifai(Query):
             height = int((f['bottom_row'] * self.height) - top)
             r.append(str(left) + '\t' + str(top) + '\t' \
                      + str(width) + '\t' + str(height))
+
+        for region in self.celebrities():
+            f = region['region_info']['bounding_box']
+            left   = int(f['left_col'] * self.width)
+            top    = int(f['top_row'] * self.height)
+            width  = int((f['right_col'] * self.width) - left)
+            height = int((f['bottom_row'] * self.height) - top)
+            identities = region['data']['face']['identity']['concepts']
+
+            for i in identities:
+              if i['value'] < confidence:
+                continue
+              r.append(str(left) + '\t' + str(top) + '\t'              \
+                        + str(width) + '\t' + str(height) + '\t'       \
+                        + str(self.prec_fmt.format(i['value'])) + '\t'  \
+                        + i['id'] + '\t' + i['name'])
         return r
 
 class Imagga(Query):

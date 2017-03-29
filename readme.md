@@ -22,7 +22,7 @@ The table below characterizes Fovea's current feature coverage. Most vendors off
 | [Adult (NSFW)](#adult)          | ✅     | ✅️️       |        | ✅️️       |        | ❌        |         | ✅️️          | ✅️️    | 
 | [Categories](#categories)            |        | ✅️️       |        |          | ✅️️     |        |         | ✅️️          | ✅️️    |
 | [Image Type](#image-type)            |        | ✅️       |        |          |        |        |         | ❌          | ✅️    ️|
-| [Color](#color)                 |        | ✅️️       |        | ❌       |        | ❌       |         | ❌          | ✅️️    |
+| [Color](#color)                 |        | ✅️️       |        | ✅️️       |        | ❌       |         | ❌          | ✅️️    |
 | [Celebrities](#celebrities)           |        | ✅       |        | ✅️       | ✅     |        |         | ✅️          | ✅      |
 
 ✅ indicates a working feature, ❌ indicates a missing feature, and empty-cells represent features not supported by a particular vendor.

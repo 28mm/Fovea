@@ -153,17 +153,17 @@ def main():
                         default=2)
 
     # Query Options (after parsing, default to labels if none are set.)
-    flags=[ 'labels',      # MSFT GOOG AMZN         WATSON CLARIFAI
-            'faces',       # MSFT GOOG AMZN OPENCV         CLARIFAI
-            'text',        # MSFT GOOG
-            'emotions',    # MSFT GOOG
-            'description', # MSFT
-            'celebrities', # MSFT                   WATSON
-            'adult',       # MSFT
-            'categories',  # MSFT                   WATSON
-            'image_type',  # MSFT
-            'color',       # MSFT
-            'landmarks' ]  #      GOOG
+    flags=[ 'labels',
+            'faces',
+            'text',
+            'emotions',
+            'description',
+            'celebrities',
+            'adult',
+            'categories',
+            'image_type',
+            'color',       
+            'landmarks' ]
 
     for flag in flags:
         parser.add_argument('--' + flag,
@@ -312,7 +312,8 @@ def main():
                                  models=args.models,
                                  label_lang=args.lang,
                                  max_labels=args.max_labels,
-                                 precision=args.precision)
+                                 precision=args.precision,
+                                 color=args.color)
 
             elif args.provider == 'facebook':
                 raise
@@ -1182,7 +1183,7 @@ class Clarifai(Query):
 
     def __init__(self, image, client_id, client_secret, access_token="",
                  labels=True, faces=False, adult=False, 
-                 celebrities=False, models=[],
+                 celebrities=False, models=[], color=False,
                  label_lang='en', max_labels=10, precision=2):
 
         self.client_id     = client_id
@@ -1193,6 +1194,7 @@ class Clarifai(Query):
         self._faces        = faces
         self._adult        = adult
         self._celebrities  = celebrities
+        self._color        = color
         self._json         = None
         self._models       = [ 'general-v1.3' ] if models       == []      \
                                                 and celebrities == False   \
@@ -1304,7 +1306,15 @@ class Clarifai(Query):
           response_json = json.loads(response.text)
           self._json['celebrities'] = response_json
 
+        if self._color:
+          url = 'https://api.clarifai.com/v2/models/' \
+                + self.models['color'] + '/outputs'
 
+          response = requests.post(url,
+                                   headers=headers,
+                                   data=json.dumps(data))
+          response_json = json.loads(response.text)
+          self._json['color'] = response_json
 
 
     @empty_unless('_labels')
@@ -1318,6 +1328,10 @@ class Clarifai(Query):
     @empty_unless('_celebrities')
     def celebrities(self):
         return self._json['celebrities']['outputs'][0]['data']['regions']
+
+    @empty_unless('_color')
+    def color(self):
+        return self._json['color']['outputs'][0]['data']['colors']
 
     def tabular(self, confidence=0.0):
         r = []
@@ -1356,6 +1370,13 @@ class Clarifai(Query):
                         + str(width) + '\t' + str(height) + '\t'       \
                         + str(self.prec_fmt.format(i['value'])) + '\t'  \
                         + i['id'] + '\t' + i['name'])
+
+        #print(json.dumps(self.color(), sort_keys=True, indent=4))
+        for color in self.color():
+            r.append(self.prec_fmt.format(color['value']) + '\t' \
+                      + color['raw_hex']    + '\t'               \
+                      + color['w3c']['hex'] + '\t'               \
+                      + color['w3c']['name'] )
         return r
 
 class Imagga(Query):

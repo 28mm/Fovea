@@ -115,6 +115,8 @@ def main():
                      'facebook'  : Facebook,
                      'imagga'    : Imagga }
 
+    output_opts = [ 'tabular', 'json', 'yaml' ]
+
     # Provider Options
     parser.add_argument('--provider',
                         dest='provider',
@@ -124,11 +126,33 @@ def main():
                                   'imagga', 'facebook' ],
                         default='google')
 
+    # We want be able to set providers with a single flag, rather than
+    # --provider <provider>...
+    pro_group = parser.add_mutually_exclusive_group()
+    for k in dispatch_tbl.keys():
+        pro_group.add_argument('--'+ k,
+                               dest=k,
+                               metavar=k,
+                               action='store_const',
+                               const=True,
+                               default=False)
+
     # Output Options
     parser.add_argument('--output',
                         dest='output',
-                        choices=[ 'tabular', 'json', 'yaml' ],
+                        choices=output_opts,
                         default='tabular')
+
+    # We want be able to set output mode with a single flag, rather than
+    # --output <provider>...
+    out_group = parser.add_mutually_exclusive_group()
+    for opt in output_opts:
+        out_group.add_argument('--'+ opt,
+                              dest=opt,
+                              metavar=opt,
+                              action='store_const',
+                              const=True,
+                              default=False)
 
     # Classifier/Labels Language Options
     parser.add_argument('--lang',
@@ -196,6 +220,17 @@ def main():
                         action='store_const', const=True, default=False)
 
     args = parser.parse_args()
+
+    # Was provider set with --provider <provider> or --<provider>?
+    args_dict = vars(args)
+    for k in dispatch_tbl:
+        if args_dict[k] is True:
+            args_dict['provider'] = k
+
+    # Was provider set with --output <output mode> or --<output mode>
+    for k in output_opts:
+        if args_dict[k] is True:
+            args_dict['output'] = k
 
     if args.list_models:
         for k, v in dispatch_tbl[args.provider].models.items():

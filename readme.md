@@ -87,7 +87,7 @@ usage: fovea [-h]
 | ✅️️     | ✅    ️️   | ✅️️     |  ✅      |  ✅   | ✅       |        | ✅         ️️| ✅    ️️|
 
 
-If no other flags are set, `--labels` is set by default, and `--provider` is set to `google`. `fovea <file> [files...]`
+If no other flags are set, `--labels` is set by default, and `--provider` is set to `google`.
 
 ````bash
 [user@host]$ fovea inverts/cten/pleur.jpg

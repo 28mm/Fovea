@@ -204,6 +204,13 @@ def main():
                         type=float,
                         default=0.0)
 
+    # If ontology IDs are available, should we print them?
+    parser.add_argument('--ontology',
+                        dest='ontology',
+                        action='store_const',
+                        const=True,
+                        default=False)
+
     # Take one or more files (FIXME: reporting for multiple files)
     parser.add_argument('files', nargs='*')
 
@@ -364,6 +371,7 @@ def main():
                                { 'IMAGGA_ID' : IMAGGA_ID,
                                  'IMAGGA_SECRET' : IMAGGA_SECRET },
                                labels=args.labels,
+                               ontology=args.ontology,
                                label_lang=args.lang,
                                max_labels=args.max_labels,
                                precision=args.precision)
@@ -372,7 +380,7 @@ def main():
 
             # Select output mode and print.
             if args.output == 'tabular':
-                for line in query.tabular(confidence=args.confidence):
+                for line in query.tabular(confidence=args.confidence, ontology=args.ontology):
                     print(line)
             elif args.output == 'json':
                 print(query.json())
@@ -398,7 +406,7 @@ class Query(metaclass=ABCMeta):
     # Pretty Printers
 
     @abstractmethod
-    def tabular(self, confidence=0.0):
+    def tabular(self, confidence=0.0, ontology=False):
         '''Returns a list of strings to print.'''
         raise NotImplementedError
 
@@ -417,6 +425,7 @@ class Query(metaclass=ABCMeta):
     url_support = False    # image can be given as a url
     label_langs = [ 'en' ] # supported classifier languages
     ocr_langs   = []       # supported ocr languages
+    ontology_placeholder = 'xxxxxx'
 
     precision_fmts = { 1 : '{0:.1f}',
                        2 : '{0:.2f}',
@@ -600,7 +609,7 @@ class Microsoft(Query):
     ########################################################################
     # print()-able response data  ##########################################
 
-    def tabular(self, confidence=0.0):
+    def tabular(self, confidence=0.0, ontology=False):
         r = []
         l_count = 0
 
@@ -641,7 +650,7 @@ class Microsoft(Query):
                      + '\t' + str(rect['width'])                    \
                      + '\t' + str(rect['height'])                   \
                      + '\t' + self.prec_fmt.format(l['confidence']) \
-                     + '\t' + 'xxxxx'                               \
+                     + '\t' + self.ontology_placeholder             \
                      + '\t' + l['name'])
 
         return r
@@ -801,7 +810,7 @@ class Amazon(Query):
     def faces(self):
         return self._json['RekognitionService.DetectFaces']['FaceDetails']
 
-    def tabular(self, confidence=0.0):
+    def tabular(self, confidence=0.0, ontology=False):
         '''Returns a list of strings to print.'''
         r = []
         l_count = 0
@@ -978,12 +987,17 @@ class Google(Query):
     ########################################################################
     # print()-able response data  ##########################################
 
-    def tabular(self, confidence=0.0):
+    def tabular(self, confidence=0.0, ontology=False):
         '''Returns a list of strings to print.'''
         r = []
         for l in self.labels():
             if l['score'] > confidence:
-                r.append(self.prec_fmt.format(l['score']) + '\t' + l['description'])
+                if ontology is True:
+                    r.append(self.prec_fmt.format(l['score']) + '\t' \
+                              + l['mid'] + '\t'                      \
+                              + l['description'])
+                else:
+                    r.append(self.prec_fmt.format(l['score']) + '\t' + l['description'])
 
         adult = self.adult()
         if adult:
@@ -1050,7 +1064,7 @@ class OpenCV(Query):
     def faces(self):
         return self._json['faces']
 
-    def tabular(self, confidence=0.0):
+    def tabular(self, confidence=0.0, ontology=False):
         '''Returns a list of strings to print.'''
         r = []
 
@@ -1148,7 +1162,7 @@ class Watson(Query):
         return [ x['face_location'] for x in \
                  self._json['faces']['images'][0]['faces']  ]
 
-    def tabular(self, confidence=0.0):
+    def tabular(self, confidence=0.0, ontology=False):
         '''Returns a list of strings to print.'''
         r = []
 
@@ -1368,7 +1382,7 @@ class Clarifai(Query):
     def color(self):
         return self._json['color']['outputs'][0]['data']['colors']
 
-    def tabular(self, confidence=0.0):
+    def tabular(self, confidence=0.0, ontology=False):
         r = []
 
         l_count = 0
@@ -1470,11 +1484,14 @@ class Imagga(Query):
         'zh_cht' # Chinese Traditional
     ]
 
-    def __init__(self, image, credentials, labels=True, label_lang='en', max_labels=10, precision=2):
+    ontology_placeholder = 'n00000000'
+
+    def __init__(self, image, credentials, labels=True, ontology=False, label_lang='en', max_labels=10, precision=2):
         self.image         = image
         self.IMAGGA_ID     = credentials['IMAGGA_ID']
         self.IMAGGA_SECRET = credentials['IMAGGA_SECRET']
         self._labels       = True
+        self._ontology     = ontology
         self.label_lang    = label_lang
         self.max_labels    = max_labels
         self.precision     = precision
@@ -1505,8 +1522,11 @@ class Imagga(Query):
         # 2nd GET from /tagging
         params = {
             'language' : self.label_lang,
-            'content'  : content_id
+            'content'  : content_id,
         }
+
+        if self._ontology:         # the value of verbose doesn't mattter
+            params['verbose'] = 1  # but its presence does. Ergo special-casing.
 
         r = requests.get('https://api.imagga.com/v1/tagging',
                          auth=auth, params=params)
@@ -1518,7 +1538,7 @@ class Imagga(Query):
     def labels(self):
         return self._json['results'][0]['tags']
 
-    def tabular(self, confidence=0.0):
+    def tabular(self, confidence=0.0, ontology=False):
         r = []
 
         l_count=0
@@ -1527,7 +1547,21 @@ class Imagga(Query):
                 break
             if l['confidence'] / 100. > confidence:
                 l_count+=1
-                r.append(self.prec_fmt.format(l['confidence'] / 100.) + '\t' + l['tag'])
+                if ontology:
+
+                    # Immaga doesn't always return a synset_id.
+                    # If origin == "recognition," it does
+                    # If origin == "additional," it doesn't.
+                    if 'synset_id' in l:
+                        synset_id = l['synset_id']
+                    else:
+                        synset_id = self.ontology_placeholder
+                  
+                    r.append(self.prec_fmt.format(l['confidence'] / 100.) \
+                              + '\t' + synset_id                          \
+                              + '\t' + l['tag'])
+                else:
+                    r.append(self.prec_fmt.format(l['confidence'] / 100.) + '\t' + l['tag'])
 
 
         return r

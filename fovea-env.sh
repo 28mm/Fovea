@@ -13,4 +13,5 @@ export WATSON_CV_URL=""
 export WATSON_CV_KEY=""
 export IMAGGA_ID=""
 export IMAGGA_SECRET=""
+export SIGHTHOUND_TOKEN=""
 

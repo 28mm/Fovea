@@ -34,6 +34,7 @@ IMAGGA_ID          = None
 IMAGGA_SECRET      = None
 FB_USER_ID         = None
 FB_PHOTOS_TOKEN    = None
+SIGHTHOUND_TOKEN   = None
 
 ############################################################################
 # Utilities, Decorators, etc. ##############################################
@@ -106,14 +107,15 @@ def main():
 
     parser = argparse.ArgumentParser(description = 'Classify image contents with the the Google, Microsoft, or Amazon Computer Vision APIs.')
 
-    dispatch_tbl = { 'google'    : Google,
-                     'microsoft' : Microsoft,
-                     'amazon'    : Amazon,
-                     'opencv'    : OpenCV,
-                     'watson'    : Watson,
-                     'clarifai'  : Clarifai,
-                     'facebook'  : Facebook,
-                     'imagga'    : Imagga }
+    dispatch_tbl = { 'google'     : Google,
+                     'microsoft'  : Microsoft,
+                     'amazon'     : Amazon,
+                     'opencv'     : OpenCV,
+                     'watson'     : Watson,
+                     'clarifai'   : Clarifai,
+                     'facebook'   : Facebook,
+                     'imagga'     : Imagga,
+                     'sighthound' : SightHound }
 
     output_opts = [ 'tabular', 'json', 'yaml' ]
 
@@ -123,7 +125,8 @@ def main():
                         choices=[ 'google', 'microsoft',  \
                                   'amazon', 'opencv',     \
                                   'watson', 'clarifai',   \
-                                  'imagga', 'facebook' ],
+                                  'imagga', 'facebook',
+                                  'sighthound' ],
                         default='google')
 
     # We want be able to set providers with a single flag, rather than
@@ -187,7 +190,8 @@ def main():
             'categories',
             'image_type',
             'color',       
-            'landmarks' ]
+            'landmarks',
+            'vehicles' ]
 
     for flag in flags:
         parser.add_argument('--' + flag,
@@ -264,7 +268,8 @@ def main():
                  'WATSON_CV_URL', 'WATSON_CV_KEY',
                  'CLARIFAI_CLIENT_ID', 'CLARIFAI_CLIENT_SECRET',
                  'CLARIFAI_ACCESS_TOKEN',
-                 'IMAGGA_ID', 'IMAGGA_SECRET' ]:
+                 'IMAGGA_ID', 'IMAGGA_SECRET',
+                 'SIGHTHOUND_TOKEN' ]:
         if cred in os.environ:
             globals()[cred] = os.environ[cred]
 
@@ -375,6 +380,13 @@ def main():
                                label_lang=args.lang,
                                max_labels=args.max_labels,
                                precision=args.precision)
+            elif args.provider == 'sighthound':
+                query = SightHound(image,
+                                   SIGHTHOUND_TOKEN,
+                                   faces=args.faces,
+                                   emotions=args.emotions,
+                                   celebrities=args.celebrities,
+                                   vehicles=args.vehicles)
 
             query.run()
 
@@ -469,6 +481,9 @@ class Query(metaclass=ABCMeta):
         raise NotImplementedError
 
     def color(self):
+        raise NotImplementedError
+
+    def vehicles(self):
         raise NotImplementedError
 
 class Microsoft(Query):
@@ -1565,6 +1580,118 @@ class Imagga(Query):
 
 
         return r
+
+class SightHound(Query):
+
+  def __init__(self, image, api_token, 
+               precision=2,
+               faces=False, emotions=False, celebrities=False, vehicles=False, people=False):
+      self.image         = image
+      self.api_token     = api_token
+      self.precision     = precision
+      self.prec_fmt      = Query.precision_fmts[precision]
+
+      self._faces       = faces
+      self._emotions    = emotions
+      self._celebrities = celebrities
+
+      # FIXME add options for these
+      self._age            = False
+      self._face_landmarks = False
+      self._gender         = False
+
+      self._vehicles    = vehicles
+      self._people      = people
+      self._json        = {}
+
+  def run(self):
+
+      headers = { 'X-Access-Token' : self.api_token,
+                  'Content-Type'   : 'application/octet-stream' }
+
+      if self._faces or self._people:
+
+          url = 'https://dev.sighthoundapi.com/v1/detections' # production / paid accounts
+                                                              # use a different endpoint
+
+          # detections?type=face,person&faceOption=gender,landmark,age,emotion
+          face_opts = ''
+          t  = ''
+
+          if self._faces and self._people:
+              t='face,person'
+
+          elif self._people and not self._faces:
+              t='person'
+
+          if self._faces:
+              face_opts += 'gender,'   if self._gender         else ''
+              face_opts += 'landmark,' if self._face_landmarks else ''
+              face_opts += 'age,'      if self._age            else ''
+              face_opts += 'emotion,'  if self._emotions       else ''
+              face_opts = face_opts.rstrip(',')
+              if len(face_opts) > 0:
+                  face_opts = '&faceOption=' + face_opts
+
+          r = requests.post(url + '?type=' + t + face_opts,
+                            headers=headers,
+                            data=self.image)
+          self._json['faces'] = json.loads(r.text)
+
+      elif self._vehicles:
+
+          url = 'https://dev.sighthoundapi.com/v1/recognition?objectType=vehicle,licenseplate'
+          r = requests.post(url, 
+                            headers=headers, 
+                            data=self.image)
+          self._json['vehicles'] = json.loads(r.text)
+
+  @empty_unless('_vehicles')
+  def vehicles(self):
+      return self._json['vehicles']['objects']
+
+  @empty_unless('_faces')
+  def faces(self):
+      return self._json['faces']['objects']
+
+  def tabular(self, confidence=0.0, ontology=False):
+      r = []
+      for vehicle in self.vehicles():
+
+          vertices = vehicle['vehicleAnnotation']['bounding']['vertices']
+          min_x = sys.maxsize
+          min_y = sys.maxsize
+          max_x = 0
+          max_y = 0
+
+          for vertex in vertices: # Assemble a bounding rectangle.
+              max_x = vertex['x'] if vertex['x'] > max_x else max_x
+              max_y = vertex['y'] if vertex['y'] > max_y else max_y
+              min_x = vertex['x'] if vertex['x'] < min_x else min_x
+              min_y = vertex['y'] if vertex['y'] < min_y else min_y
+
+          #print(vehicle.keys())
+          make  = vehicle['vehicleAnnotation']['attributes']['system']['make']
+          model = vehicle['vehicleAnnotation']['attributes']['system']['model']
+          color = vehicle['vehicleAnnotation']['attributes']['system']['color']
+
+          r.append(str(min_x) + '\t' + str(min_y) + '\t' \
+                   + str(max_x - min_x) + '\t' \
+                   + str(max_y - min_y) + '\t' \
+                   + self.prec_fmt.format(make['confidence']) + '\t' + make['name'] + '\t' \
+                   + self.prec_fmt.format(model['confidence']) + '\t' + model['name'] + '\t' \
+                   + self.prec_fmt.format(color['confidence']) + '\t' + color['name'])
+
+      for face in self.faces():
+          if face['type'] == 'face':
+              box = face['boundingBox']
+              r.append(str(box['x'])        + '\t' \
+                       + str(box['y'])      + '\t' \
+                       + str(box['width'])  + '\t' \
+                       + str(box['height']))
+
+      return r
+
 
 class Facebook(Query):
     '''Stub. Should be possible to get labels from <img alt=""> as

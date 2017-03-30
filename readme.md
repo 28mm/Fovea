@@ -3,27 +3,29 @@
 <img src="examples/tty.gif">
 </p>
 
-Fovea is a unified command-line interface to computer vision APIs from [Google](https://cloud.google.com/vision/docs/), [Microsoft](https://www.microsoft.com/cognitive-services/en-us/computer-vision-api), [AWS](https://aws.amazon.com/rekognition/), [Clarifai](https://developer.clarifai.com/), [Imagga](https://wwww.imagga.com/), and [IBM Watson](https://www.ibm.com/watson/developercloud/visual-recognition.html). Use Fovea if you want to:
+Fovea is a unified command-line interface to computer vision APIs from [Google](https://cloud.google.com/vision/docs/), [Microsoft](https://www.microsoft.com/cognitive-services/en-us/computer-vision-api), [AWS](https://aws.amazon.com/rekognition/), [Clarifai](https://developer.clarifai.com/), [Imagga](https://wwww.imagga.com/), [IBM Watson](https://www.ibm.com/watson/developercloud/visual-recognition.html), and [SightHound](https://www.sighthound.com/products/cloud/) Use Fovea if you want to:
 
 1.	Easily classify images in a shell script.
 2.	Compare alternative computer vision apis.
 
 The table below characterizes Fovea's current feature coverage. Most vendors offer broadly similar features, but their output formats differ. Where possible, Fovea uses a tabular output mode suitable for interactive shell sessions, and scripts. If a particular feature is not supported by this tabular output mode, vendor-specific JSON is available, instead. 
 
-| Feature               | Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
+| Feature               | Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
 | ---:                  |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
 | [Labels](#labels) | ✅️️     | ✅    ️️   | ✅️️     |  ✅      |  ✅   | ✅       |        | ✅         ️️| ✅    ️️|
 | [Label i18n](#label-i18n)    |        | ✅       |        | ✅        | ✅    | ✅       |        | ✅          | ✅      |
 | [Faces](#faces)                 | ✅️️     | ✅️️       | ✅️️     |  ✅      |  ✅   |        | ✅️️     | ✅️️         | ✅️️    |
 | [Landmarks](#landmarks)             | ✅     |          |        |          |        |        |        | ✅️️         | ✅️    ️|
 | [Text (OCR)](#ocr)            | ✅     | ✅️️️       |        |          |        |        |        | ️️❌          | ✅️️    |
-| [Emotions](#emotions)              | ✅️️     | ✅️️       | ❌️     |          |       |        |         | ❌          | ✅️️    |
+| [Emotions](#emotions)              | ✅️️     | ✅️️       | ❌️     |          |       |        |  ✅       | ❌          | ✅️️    |
 | [Description](#description)           |        | ✅️️       |        |          |        |        |         | ❌          | ✅️️    |
 | [Adult (NSFW)](#adult)          | ✅     | ✅️️       |        | ✅️️       |        | ❌        |         | ✅️️          | ✅️️    | 
 | [Categories](#categories)            |        | ✅️️       |        |          | ✅️️     |        |         | ✅️️          | ✅️️    |
 | [Image Type](#image-type)            |        | ✅️       |        |          |        |        |         | ❌          | ✅️    ️|
 | [Color](#color)                 |        | ✅️️       |        | ✅️️       |        | ❌       |         | ❌          | ✅️️    |
-| [Celebrities](#celebrities)           |        | ✅       |        | ✅️       | ✅     |        |         | ✅️          | ✅      |
+| [Celebrities](#celebrities)           |        | ✅       |        | ✅️       | ✅     |        | ❌        | ✅️          | ✅      |
+| [Vehicles](#vehicles)           |        |        |        |     |     |        | ✅        | ✅️          | ✅      |
+
 
 ✅ indicates a working feature, ❌ indicates a missing feature, and empty-cells represent features not supported by a particular vendor.
 
@@ -46,6 +48,7 @@ Obtain credentials for the web services you plan to use. These should be supplie
  * IBM Watson Image Recognition: [https://www.ibm.com/watson/developercloud/visual-recognition.html](https://www.ibm.com/watson/developercloud/visual-recognition.html)
  * Clarifai: [https://developer.clarifai.com/](https://developer.clarifai.com/)
  * Imagga: [https://docs.imagga.com](https://docs.imagga.com)
+ * SightHound: [https://www.sighthound.com/products/cloud/](https://www.sighthound.com/products/cloud/)
 
 
 ````bash
@@ -61,20 +64,22 @@ export WATSON_CV_URL=""
 export WATSON_CV_KEY=""
 export IMAGGA_ID=""
 export IMAGGA_SECRET=""
+export SIGHTHOUND_TOKEN=""
 ````
 
 ## Usage
 ````bash
 usage: fovea [-h]
-             [--provider {google,microsoft,amazon,opencv,watson,clarifai,imagga,facebook}]
-             [--google | --microsoft | --amazon | --opencv | --watson | --clarifai | --facebook | --imagga]
+             [--provider {google,microsoft,amazon,opencv,watson,clarifai,imagga,facebook,sighthound}]
+             [--google | --microsoft | --amazon | --opencv | --watson | --clarifai | --facebook | --imagga | --sighthound]
              [--output {tabular,json,yaml}] [--tabular | --json | --yaml]
              [--lang LANG] [--ocr-lang OCR_LANG] [--max-labels MAX_LABELS]
              [--precision PRECISION] [--labels] [--faces] [--text]
              [--emotions] [--description] [--celebrities] [--adult]
              [--categories] [--image_type] [--color] [--landmarks]
-             [--confidence confidence threshold] [--model MODELS]
-             [--list-models] [--list-langs] [--list-ocr-langs]
+             [--vehicles] [--confidence confidence threshold] [--ontology]
+             [--model MODELS] [--list-models] [--list-langs]
+             [--list-ocr-langs]
              [files [files ...]]
 ````
 
@@ -82,7 +87,7 @@ usage: fovea [-h]
 
 ### Labels
 
-| Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
+| Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
 |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
 | ✅️️     | ✅    ️️   | ✅️️     |  ✅      |  ✅   | ✅       |        | ✅         ️️| ✅    ️️|
 
@@ -111,12 +116,9 @@ If no other flags are set, `--labels` is set by default, and `--provider` is set
 0.92    wildlife
 ````
 
-
-
-
 ### Label i18n
 
-| Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
+| Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
 |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
 |        | ✅       |        | ✅        | ✅    | ✅       |        | ✅          | ✅      |
 
@@ -143,7 +145,7 @@ From the list of vendor-supported languages, set the desired language with the `
 
 ### Faces
 
-| Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
+| Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
 |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
 | ✅️️     | ✅️️       | ✅️️     |  ✅      |  ✅   |        | ✅️️     | ✅️️         | ✅️️    |
 
@@ -152,7 +154,7 @@ Most vendors support face detection. The bounding box for each detected face is 
 
   1. Top-X 
   2. Left-Y
-  3. Length
+  3. Width
   4. Height
 
 ````bash
@@ -168,7 +170,7 @@ Most vendors support face detection. The bounding box for each detected face is 
 
 ### Landmarks
 
-| Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
+| Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
 |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
 | ✅     |          |        |          |        |        |        | ✅️️         | ✅️    ️|
 
@@ -182,7 +184,7 @@ At present, only Google supports landmark and location detection.
 
 ### OCR
 
-| Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
+| Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
 |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
 | ✅     | ✅️️️       |        |          |        |        |        | ️️❌          | ✅️️    |
 
@@ -191,16 +193,16 @@ OCR is only supported in the JSON output mode, and its format is vendor specific
 
 ### Emotions
 
-| Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
+| Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
 |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
-| ✅️️     | ✅️️       | ❌️     |          |       |        |         | ❌          | ✅️️    |
+| ✅️️     | ✅️️       | ❌️     |          |       |        | ✅️️         | ❌          | ✅️️    |
 
 
 Emotion detection is only supported in the JSON output mode, and its format is vendor specific.
 
 ### Description
 
-| Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
+| Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
 |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
 |        | ✅️️       |        |          |        |        |         | ❌          | ✅️️    |
 
@@ -209,7 +211,7 @@ Scene descriptions are only available in the JSON output mode, and its format is
 
 ### Adult
 
-| Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
+| Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
 |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
 | ✅     | ✅️️       |        | ✅️️       |        | ❌        |         | ✅️️          | ✅️️    | 
 
@@ -231,7 +233,7 @@ The parameters for NSFW and Adult image detection vary a bit between vendors. Th
 
 ### Categories
 
-| Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
+| Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
 |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
 |        | ✅️️       |        |          | ✅️️     |        |         | ✅️️          | ✅️️    |
 
@@ -240,7 +242,7 @@ Categoriziation is only available in the JSON output mode, and its format is ven
 
 ### Image Type
 
-| Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
+| Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
 |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
 |        | ✅️       |        |          |        |        |         | ❌          | ✅️    ️|
 
@@ -249,7 +251,7 @@ Image type detection is only available in the JSON output mode, and its format i
 
 ### Color
 
-| Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
+| Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
 |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
 |        | ✅️️       |        | ✅️️       |        | ❌       |         | ❌          | ✅️️    |
 
@@ -257,15 +259,15 @@ Dominant color detection is only available in the JSON output mode, and its form
 
 ### Celebrities
 
-| Google | Microsoft | Amazon | Clarifai | Watson | Imagga |OpenCV | Tabular   |  JSON |
+| Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
 |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
-|        | ✅       |        | ✅️       | ✅     |        |         | ✅️          | ✅      |
+|        | ✅       |        | ✅️       | ✅     |        | ❌        | ✅️          | ✅      |
 
 Celebrity face matches are reported in a seven field format, described below.
 
   1. Top-X 
   2. Left-Y
-  3. Length
+  3. Width
   4. Height
   5. Confidence Score
   6. Ontology Link (or a placeholder)
@@ -285,4 +287,26 @@ In contrast to IBM and Microsoft, which return only their highest confidence res
 266 179 140 140 0.95    ai_z2S44mJX michelle obama
 ````
 
+### Vehicles
 
+| Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
+|  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
+|        |        |        |     |    |        | ✅️          | ✅️          | ✅      |
+
+Vehicle detection and recognition are only available with SightHound. Recognized cars are reported in a ten field format, described below.
+
+  1. Top-X 
+  2. Left-Y
+  3. Width
+  4. Height
+  5. Confidence Score (Make)
+  6. Make (e.g. *Cadillac*)
+  7. Confidence Score (Model)
+  8. Model (e.g. *Ats*)
+  9. Confidence Score (Color)
+  10. Color (e.g. *Black*)
+
+````bash
+[user@host]$ fovea --sighthound --vehicles batmobile.jpg
+15  112 580 238 0.08    Cadillac    0.08    Ats 0.66    black
+````

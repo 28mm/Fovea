@@ -23,7 +23,7 @@ The table below characterizes Fovea's current feature coverage. Most vendors off
 | [Categories](#categories)            |        | ✅️️       |        |          | ✅️️     |        |         | ✅️️          | ✅️️    |
 | [Image Type](#image-type)            |        | ✅️       |        |          |        |        |         | ❌          | ✅️    ️|
 | [Color](#color)                 |        | ✅️️       |        | ✅️️       |        | ❌       |         | ❌          | ✅️️    |
-| [Celebrities](#celebrities)           |        | ✅       |        | ✅️       | ✅     |        | ❌        | ✅️          | ✅      |
+| [Celebrities](#celebrities)           |        | ✅       |        | ✅️       | ✅     |        | ✅️        | ✅️          | ✅      |
 | [Vehicles](#vehicles)           |        |        |        |     |     |        | ✅        | ✅️          | ✅      |
 
 
@@ -261,28 +261,28 @@ Dominant color detection is only available in the JSON output mode, and its form
 
 | Google | Microsoft | Amazon | Clarifai | Watson | Imagga | S. Hound | Tabular   |  JSON |
 |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
-|        | ✅       |        | ✅️       | ✅     |        | ❌        | ✅️          | ✅      |
+|        | ✅       |        | ✅️       | ✅     |        | ✅️        | ✅️          | ✅      |
 
-Celebrity face matches are reported in a seven field format, described below.
+Celebrity face matches are reported in a seven field format (if `--ontology` is set), or a six field format (if `--ontology` is not set). These formats are described below.
 
   1. Top-X 
   2. Left-Y
   3. Width
   4. Height
   5. Confidence Score
-  6. Ontology Link (or a placeholder)
+  6. Ontology Link or a placeholder (if `--ontology` is set.)
   7. The Celebrity's Name
 
 ````bash
-[user@host]$ fovea --celebrities --microsoft obamas.jpg
-432 134 148 148 0.95    xxxxx   Barack Hussein Obama
-279 191 117 117 1.00    xxxxx   Michelle Obama
+[user@host]$ fovea obamas.jpg --microsoft --celebrities
+432 134 148 148 0.95    Barack Hussein Obama
+279 191 117 117 1.00    Michelle Obama
 ````
 
 In contrast to IBM and Microsoft, which return only their highest confidence results, Clarfai returns a long list of possible matches for each face. Exclude lower-confidence matches with the `--confidence <int>` parameter.
 
 ````
-[patrick@fausto]$ fovea --celebrities --clarifai --confidence 0.9 ~/Desktop/obamas.jpg
+[user@host]$ fovea --celebrities --clarifai --confidence 0.9 --ontology obamas.jpg
 427 122 162 162 0.99    ai_5XjK3npz barack obama
 266 179 140 140 0.95    ai_z2S44mJX michelle obama
 ````

@@ -660,13 +660,15 @@ class Microsoft(Query):
         for l in self.celebrities():
             if l['confidence'] < confidence:
               continue
+
             rect = l['faceRectangle']
+            o_placeholder = self.ontology_placeholder + '\t' if ontology else ''
             r.append(str(rect['left']) + '\t' + str(rect['top'])    \
                      + '\t' + str(rect['width'])                    \
                      + '\t' + str(rect['height'])                   \
                      + '\t' + self.prec_fmt.format(l['confidence']) \
-                     + '\t' + self.ontology_placeholder             \
-                     + '\t' + l['name'])
+                     + '\t' + o_placeholder                         \
+                     + l['name'])
 
         return r
 
@@ -1430,12 +1432,13 @@ class Clarifai(Query):
             for i in identities:
               if i['value'] < confidence:
                 continue
-              r.append(str(left) + '\t' + str(top) + '\t'              \
-                        + str(width) + '\t' + str(height) + '\t'       \
-                        + str(self.prec_fmt.format(i['value'])) + '\t'  \
-                        + i['id'] + '\t' + i['name'])
 
-        #print(json.dumps(self.color(), sort_keys=True, indent=4))
+              o_placeholder = i['id'] + '\t' if ontology else ''
+              r.append(str(left) + '\t' + str(top) + '\t'               \
+                        + str(width) + '\t' + str(height) + '\t'        \
+                        + str(self.prec_fmt.format(i['value'])) + '\t'  \
+                        + o_placeholder + i['name'])
+
         for color in self.color():
             r.append(self.prec_fmt.format(color['value']) + '\t' \
                       + color['raw_hex']    + '\t'               \
@@ -1638,13 +1641,20 @@ class SightHound(Query):
                             data=self.image)
           self._json['faces'] = json.loads(r.text)
 
-      elif self._vehicles:
+      if self._vehicles:
 
           url = 'https://dev.sighthoundapi.com/v1/recognition?objectType=vehicle,licenseplate'
           r = requests.post(url, 
                             headers=headers, 
                             data=self.image)
           self._json['vehicles'] = json.loads(r.text)
+
+      if self._celebrities:
+          url = 'https://dev.sighthoundapi.com/v1/recognition?groupId=_celebrities'
+          r = requests.post(url,
+                           headers=headers,
+                           data=self.image)
+          self._json['celebrities'] = json.loads(r.text)
 
   @empty_unless('_vehicles')
   def vehicles(self):
@@ -1653,6 +1663,10 @@ class SightHound(Query):
   @empty_unless('_faces')
   def faces(self):
       return self._json['faces']['objects']
+
+  @empty_unless('_celebrities')
+  def celebrities(self):
+      return self._json['celebrities']['objects']
 
   def tabular(self, confidence=0.0, ontology=False):
       r = []
@@ -1689,6 +1703,35 @@ class SightHound(Query):
                        + str(box['y'])      + '\t' \
                        + str(box['width'])  + '\t' \
                        + str(box['height']))
+
+      for celeb in self.celebrities():
+          if celeb['objectType'] != 'person'                \
+            or celeb['faceAnnotation']['recognitionConfidence'] < confidence:
+              continue
+
+          vertices = celeb['faceAnnotation']['bounding']['vertices']
+          min_x = sys.maxsize
+          min_y = sys.maxsize
+          max_x = 0
+          max_y = 0
+
+          for vertex in vertices: # Assemble a bounding rectangle.
+              max_x = vertex['x'] if vertex['x'] > max_x else max_x
+              max_y = vertex['y'] if vertex['y'] > max_y else max_y
+              min_x = vertex['x'] if vertex['x'] < min_x else min_x
+              min_y = vertex['y'] if vertex['y'] < min_y else min_y
+
+          score = celeb['faceAnnotation']['recognitionConfidence']
+          name  = celeb['objectId']
+
+          o_placeholder = self.ontology_placeholder + '\t' if ontology else ''
+          r.append(str(min_x) + '\t' + str(min_y) + '\t' \
+                   + str(max_x - min_x) + '\t'           \
+                   + str(max_y - min_y) + '\t'           \
+                   + o_placeholder                       \
+                   + self.prec_fmt.format(score) + '\t'  \
+                   + name)
+
 
       return r
 

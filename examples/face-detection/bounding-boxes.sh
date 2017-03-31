@@ -4,7 +4,7 @@
 #    iterates over the set of provders supported by fovea.
 
 INFILE=7.png # 7.png: still from /Huit Femme/.
-PROVIDERS="google microsoft amazon opencv clarifai watson"
+PROVIDERS="google microsoft amazon opencv clarifai watson sighthound"
 PATH="../../bin:$PATH"
 source ~/cv-env.sh
 

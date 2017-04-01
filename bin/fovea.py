@@ -35,6 +35,8 @@ IMAGGA_SECRET      = None
 FB_USER_ID         = None
 FB_PHOTOS_TOKEN    = None
 SIGHTHOUND_TOKEN   = None
+FACE_PP_KEY        = None
+FACE_PP_SECRET     = None
 
 ############################################################################
 # Utilities, Decorators, etc. ##############################################
@@ -99,7 +101,22 @@ def is_url(b):
     '''Is a Bytes an HTTP url?'''
     return str(b[0:4]) == 'http'
 
+def image_mime(b):
+    if is_jpg(b):
+        return 'image/jpeg'
+    elif is_png(b):
+        return  'image/png'
+    else:
+        raise
 
+def image_fname(b):
+    if is_jpg(b):
+        return 'image.jpg'
+    elif is_png(b):
+        return  'image.png'
+    else:
+        raise
+    
 ###########################################################################
 # Main ####################################################################
 
@@ -115,18 +132,16 @@ def main():
                      'clarifai'   : Clarifai,
                      'facebook'   : Facebook,
                      'imagga'     : Imagga,
-                     'sighthound' : SightHound }
+                     'sighthound' : SightHound,
+                     'face++'     : FacePlusPlus }
 
-    output_opts = [ 'tabular', 'json', 'yaml' ]
+    provider_opts = [ k for k in dispatch_tbl.keys() ]
+    output_opts   = [ 'tabular', 'json', 'yaml' ]
 
     # Provider Options
     parser.add_argument('--provider',
                         dest='provider',
-                        choices=[ 'google', 'microsoft',  \
-                                  'amazon', 'opencv',     \
-                                  'watson', 'clarifai',   \
-                                  'imagga', 'facebook',
-                                  'sighthound' ],
+                        choices=provider_opts,
                         default='google')
 
     # We want be able to set providers with a single flag, rather than
@@ -255,6 +270,15 @@ def main():
         for lang in dispatch_tbl[args.provider].ocr_langs:
             print(lang)
 
+    # Check for --lang support
+    if args.lang != 'en':
+        if args.lang not in dispatch_tbl[args.provider].label_langs:
+            raise
+
+    # Check for --ocr-lang support
+    if args.ocr_lang:
+        if args.ocr_lang not in dispatch_tbl[args.provider].ocr_langs:
+            raise
 
     # If no `flags' are set, default to --labels.
     if True not in [ vars(args)[flag] for flag in flags ]:
@@ -269,7 +293,8 @@ def main():
                  'CLARIFAI_CLIENT_ID', 'CLARIFAI_CLIENT_SECRET',
                  'CLARIFAI_ACCESS_TOKEN',
                  'IMAGGA_ID', 'IMAGGA_SECRET',
-                 'SIGHTHOUND_TOKEN' ]:
+                 'SIGHTHOUND_TOKEN',
+                 'FACE_PP_KEY', 'FACE_PP_SECRET' ]:
         if cred in os.environ:
             globals()[cred] = os.environ[cred]
 
@@ -292,13 +317,6 @@ def main():
                                precision=args.precision)
 
             elif args.provider == 'microsoft':
-
-                # Make sure we have sane language defaults
-                if args.lang not in Microsoft.label_langs:
-                    raise
-
-                if args.ocr_lang and args.ocr_lang not in Microsoft.ocr_langs:
-                    raise
 
                 label_lang = args.lang
                 ocr_lang   = args.ocr_lang if args.ocr_lang else 'unk'
@@ -344,10 +362,6 @@ def main():
                                precision=args.precision)
 
             elif args.provider == 'clarifai':
-                # Make sure we have sane language defaults
-                if args.lang not in Clarifai.label_langs:
-                    raise
-
                 query = Clarifai(image,
                                  CLARIFAI_CLIENT_ID,
                                  CLARIFAI_CLIENT_SECRET,
@@ -369,9 +383,6 @@ def main():
                 query = OpenCV(image, faces=args.faces)
 
             elif args.provider == 'imagga':
-                if args.lang not in Imagga.label_langs:
-                    raise
-
                 query = Imagga(image,
                                { 'IMAGGA_ID' : IMAGGA_ID,
                                  'IMAGGA_SECRET' : IMAGGA_SECRET },
@@ -380,6 +391,7 @@ def main():
                                label_lang=args.lang,
                                max_labels=args.max_labels,
                                precision=args.precision)
+
             elif args.provider == 'sighthound':
                 query = SightHound(image,
                                    SIGHTHOUND_TOKEN,
@@ -388,11 +400,20 @@ def main():
                                    celebrities=args.celebrities,
                                    vehicles=args.vehicles)
 
+            elif args.provider == 'face++':
+                query = FacePlusPlus(image,
+                                     FACE_PP_KEY,
+                                     FACE_PP_SECRET,
+                                     faces=args.faces,
+                                     emotions=args.emotions)
+
             query.run()
 
             # Select output mode and print.
             if args.output == 'tabular':
-                for line in query.tabular(confidence=args.confidence, ontology=args.ontology):
+                for line in query.tabular(
+                        confidence=args.confidence,
+                        ontology=args.ontology):
                     print(line)
             elif args.output == 'json':
                 print(query.json())
@@ -1114,17 +1135,10 @@ class Watson(Query):
         self.prec_fmt    = Query.precision_fmts[precision]
 
     def run(self):
-
         self._json = {}
-        # FIXME do this in __init__(...)
-        if is_jpg(self.image):
-            image_mime  = 'image/jpeg'
-            image_fname = 'name.jpg'
-        elif is_png(self.image):
-            image_mime = 'image/png'
-            image_fname = 'name.png'
-        else:
-            raise # FIXME better checking of supported filetypes.
+
+        mime  = image_mime(self.image)
+        fname = image_fname(self.image) 
 
         params = {
             'api_key' : self.api_key,
@@ -1135,7 +1149,7 @@ class Watson(Query):
             'Accept-Language' : self.label_lang
         }
 
-        f = BytesFile(self.image, filename=image_fname)
+        f = BytesFile(self.image, filename=fname)
 
 
         # labels, categories are via one endpoint
@@ -1145,7 +1159,7 @@ class Watson(Query):
                                      params=params,
                                      headers=headers,
                                      files={ 'images_file' :
-                                             (f.name, f, image_mime) })
+                                             (f.name, f, mime) })
 
             response_json = json.loads(response.text)
             self._json['labels'] = response_json
@@ -1156,11 +1170,9 @@ class Watson(Query):
             response = requests.post(url,
                                      params=params,
                                      files={ 'images_file' :
-                                             (f.name, f, image_mime) })
+                                             (f.name, f, mime) })
             response_json = json.loads(response.text)
             self._json['faces'] = response_json
-
-
 
     @empty_unless('_labels')
     def labels(self):
@@ -1518,23 +1530,15 @@ class Imagga(Query):
     def run(self):
 
         auth = ( self.IMAGGA_ID, self.IMAGGA_SECRET)
+        mime  = image_mime(self.image)
+        fname = image_fname(self.image) 
 
-        # FIXME shared with Watson.
-        if is_jpg(self.image):
-            image_mime  = 'image/jpeg'
-            image_fname = 'name.jpg'
-        elif is_png(self.image):
-            image_mime = 'image/png'
-            image_fname = 'name.png'
-        else:
-            raise # FIXME better checking of supported filetypes.
-
-        f = BytesFile(self.image, filename=image_fname)
+        f = BytesFile(self.image, filename=fname)
 
         # 1st: POST to /content to obtain a url/content_id
         r = requests.post('https://api.imagga.com/v1/content',
                           auth=auth,
-                          files={ 'image' : ( f.name, f, image_mime ) })
+                          files={ 'image' : ( f.name, f, mime ) })
         content_id = json.loads(r.text)['uploaded'][0]['id']
 
         # 2nd GET from /tagging
@@ -1735,7 +1739,60 @@ class SightHound(Query):
 
       return r
 
+class FacePlusPlus(Query):
 
+    def __init__(self, image, api_key, api_secret,
+                 faces=False, emotions=False,
+                 precision=2):
+
+        self.api_key    = api_key
+        self.api_secret = api_secret
+        self.image      = image
+        
+        self._faces     = faces
+        self._emotions  = emotions
+
+        self.precision  = precision
+        self.prec_fmt   = Query.precision_fmts[precision]
+
+    def run(self):
+        self._json = {}
+        
+        form = {
+            'api_key'    : self.api_key,
+            'api_secret' : self.api_secret
+        }
+        
+        mime  = image_mime(self.image)
+        fname = image_fname(self.image)
+
+        f = BytesFile(self.image, filename=fname)
+
+        r = requests.post('https://api-us.faceplusplus.com/facepp/v3/detect',
+                          data=form,
+                          files={ 'image_file' : ( f.name, f, mime ) })
+        self._json = json.loads(r.text)
+
+
+    def tabular(self, confidence=0.0, ontology=False):
+        r = []
+        for face in self.faces():
+            rect = face['face_rectangle']
+            token = face['face_token'] # not using, for now.
+            r.append(str(rect['left']) + '\t' + str(rect['top']) + '\t' \
+                     + str(rect['width']) + '\t' + str(rect['height']) )
+
+        return r
+
+    @empty_unless('_faces')
+    def faces(self):
+        return self._json['faces']
+
+    @empty_unless('_emotions')
+    def emotions(self):
+        raise
+
+    
 class Facebook(Query):
     '''Stub. Should be possible to get labels from <img alt=""> as
     Well as face bounding boxes and suggested names...'''
@@ -1757,4 +1814,33 @@ class Facebook(Query):
         def upload(self):
             raise
 
+
+class Template(Query):
+
+    def __init__(self, image, api_key, api_secret, faces=False, emotions=False,
+                 precision=2):
+        self.api_key    = api_key
+        self.api_secret = api_secret
+        self.image      = image
+        self._faces     = faces
+        self._emotions  = emotions
+        self.precision  = precision
+        self.prec_fmt   = Query.precision_fmts[precision]
+
+    def run(self):
+        raise
+
+    def tabular(self, confidence=0.0, ontology=False):
+        raise
+
+    @empty_unless('_faces')
+    def faces(self):
+        raise
+
+    @empty_unless('_emotions')
+    def emotions(self):
+        raise
+
+
+        
 if __name__ == '__main__': main()

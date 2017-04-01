@@ -30,3 +30,5 @@ Watson: `[user@host]$ fovea --watson --faces 7.png`
 SightHound `[user@host]$ fovea --sighthound --faces 7.png`
 ![SightHound](images/7.png-sighthound.png)
 
+Face++ `[user@host]$ fovea --face++ --faces 7.png`
+![Face++](images/7.png-face++.png)

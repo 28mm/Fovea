@@ -3,8 +3,8 @@
 
 Fovea reports the bounding box for each detected face in a four field format, described below. These bounding boxes can be easily plotted over the original image, with ImageMagick, for instance.
 
-  1. Top-X 
-  2. Left-Y
+  1. Left-X 
+  2. Top-Y
   3. Width
   4. Height
 

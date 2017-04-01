@@ -149,24 +149,14 @@ From the list of vendor-supported languages, set the desired language with the `
 |  ---   | ---       | ---    | ---      | ---    | ---    |---    |  ---      | ---  |
 | ✅️️     | ✅️️       | ✅️️     |  ✅      |  ✅   |        | ✅️️     | ✅️️         | ✅️️    |
 
+Most vendors support face detection. In addtion, OpenCV's pre-trained Haar cascade is available with the `--faces` and `--opencv` flags. The bounding box for each detected face is reported in a four field format, described below.
 
-Most vendors support face detection. The bounding box for each detected face is reported in a four field format, described below.
-
-  1. Top-X 
-  2. Left-Y
+  1. Left-X 
+  2. Top-Y
   3. Width
   4. Height
 
-````bash
-[useer@host]$ fovea --provider amazon --faces examples/face-detection/7.png
-1145	51	125	125
-775	112	125	125
-1703	116	123	123
-528	89	116	119
-354	63	110	110
-1506	91	106	106
-55	72	101	102
-````
+See [examples/face-detection](examples/face-detection) for further information.
 
 ### Landmarks
 
@@ -265,8 +255,8 @@ Dominant color detection is only available in the JSON output mode, and its form
 
 Celebrity face matches are reported in a seven field format (if `--ontology` is set), or a six field format (if `--ontology` is not set). These formats are described below.
 
-  1. Top-X 
-  2. Left-Y
+  1. Left-X 
+  2. Top-Y
   3. Width
   4. Height
   5. Confidence Score
@@ -295,8 +285,8 @@ In contrast to IBM and Microsoft, which return only their highest confidence res
 
 Vehicle detection and recognition are only available with SightHound. Recognized cars are reported in a ten field format, described below.
 
-  1. Top-X 
-  2. Left-Y
+  1. Left-X 
+  2. Top-Y
   3. Width
   4. Height
   5. Confidence Score (Make)

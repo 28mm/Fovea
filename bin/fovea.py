@@ -304,6 +304,10 @@ def main():
         with flex_open(fname) as f:
             query = None
             image = f.read()
+            
+            if len(image) > dispatch_tbl[args.provider].max_image_size:
+                print('File too large %s. Skipping.' % fname, file=sys.stderr)
+                continue
 
             if args.provider == 'google':
                 query = Google(image,
@@ -458,7 +462,8 @@ class Query(metaclass=ABCMeta):
     url_support = False    # image can be given as a url
     label_langs = [ 'en' ] # supported classifier languages
     ocr_langs   = []       # supported ocr languages
-    ontology_placeholder = 'xxxxxx'
+    ontology_placeholder = 'xxxxxx'    # not all providers supply ontology links
+    max_image_size       = 0 # sys.maxsize
 
     precision_fmts = { 1 : '{0:.1f}',
                        2 : '{0:.2f}',
@@ -513,6 +518,8 @@ class Microsoft(Query):
     _MSFT_CV_BASE_URL  = 'https://api.projectoxford.ai/vision/v1.0/analyze'
     _MSFT_OCR_BASE_URL = 'https://westus.api.cognitive.microsoft.com/vision/v1.0/ocr'
 
+    max_image_size = 4 * 1024 * 1024
+    
     label_langs = [ 'en', 'zh' ] # supported classifier/tag languages
 
     # supported OCR languages
@@ -696,6 +703,9 @@ class Microsoft(Query):
 class Amazon(Query):
     '''Query class for AWS Rekognition'''
 
+    # Limits: 5 MB for direct upload, 15 MB for S3 objects.
+    max_image_size = 5 * 1024 * 1024
+    
     def __init__(self, image,
                  aws_key_id,
                  aws_key_secret,
@@ -873,6 +883,8 @@ class Amazon(Query):
 class Google(Query):
     '''Query class for the Google Cloud Vision API.'''
 
+    max_image_size = 4 * 1024 * 1024
+    
     # (Beware: these are arbitrary assignments!)
     likelihood = {
         'VERY_LIKELY'   : 0.99,
@@ -1115,6 +1127,8 @@ class OpenCV(Query):
 
 class Watson(Query):
 
+    max_image_size = 2 * 1024 * 1024
+    
     # supported classifier/tag languages
     label_langs = [ 'en',  # (English)
                     'es',  # (Spanish)
@@ -1220,6 +1234,8 @@ class Watson(Query):
 
 class Clarifai(Query):
 
+    max_image_size = sys.maxsize # FIXME.
+    
     # dict generated with .../utilities/clarifai/models.py
     models = {
         'general-v1.3'    : 'aaa03c23b3724a16a56b629203edc62c',
@@ -1460,6 +1476,8 @@ class Clarifai(Query):
 
 class Imagga(Query):
 
+    max_image_size = sys.maxsize # FIXME
+    
     label_langs = [
         'ar', # Arabic
         'bg', # Bulgarian
@@ -1590,154 +1608,157 @@ class Imagga(Query):
 
 class SightHound(Query):
 
-  def __init__(self, image, api_token, 
-               precision=2,
-               faces=False, emotions=False, celebrities=False, vehicles=False, people=False):
-      self.image         = image
-      self.api_token     = api_token
-      self.precision     = precision
-      self.prec_fmt      = Query.precision_fmts[precision]
+    max_image_size = sys.maxsize # FIXME
+    
+    def __init__(self, image, api_token, 
+                 precision=2,
+                 faces=False, emotions=False, celebrities=False, vehicles=False, people=False):
+        self.image         = image
+        self.api_token     = api_token
+        self.precision     = precision
+        self.prec_fmt      = Query.precision_fmts[precision]
+        
+        self._faces       = faces
+        self._emotions    = emotions
+        self._celebrities = celebrities
+        
+        # FIXME add options for these
+        self._age            = False
+        self._face_landmarks = False
+        self._gender         = False
 
-      self._faces       = faces
-      self._emotions    = emotions
-      self._celebrities = celebrities
+        self._vehicles    = vehicles
+        self._people      = people
+        self._json        = {}
 
-      # FIXME add options for these
-      self._age            = False
-      self._face_landmarks = False
-      self._gender         = False
+    def run(self):
 
-      self._vehicles    = vehicles
-      self._people      = people
-      self._json        = {}
+        headers = { 'X-Access-Token' : self.api_token,
+                    'Content-Type'   : 'application/octet-stream' }
+        
+        if self._faces or self._people:
 
-  def run(self):
+            # production / paid accounts
+            # use a different endpoint
+            url = 'https://dev.sighthoundapi.com/v1/detections'
+            
+            # detections?type=face,person&faceOption=gender,landmark,age,emotion
+            face_opts = ''
+            t  = ''
 
-      headers = { 'X-Access-Token' : self.api_token,
-                  'Content-Type'   : 'application/octet-stream' }
+        if self._faces and self._people:
+            t='face,person'
 
-      if self._faces or self._people:
+        elif self._people and not self._faces:
+            t='person'
 
-          url = 'https://dev.sighthoundapi.com/v1/detections' # production / paid accounts
-                                                              # use a different endpoint
+        if self._faces:
+            face_opts += 'gender,'   if self._gender         else ''
+            face_opts += 'landmark,' if self._face_landmarks else ''
+            face_opts += 'age,'      if self._age            else ''
+            face_opts += 'emotion,'  if self._emotions       else ''
+            face_opts = face_opts.rstrip(',')
+            if len(face_opts) > 0:
+                face_opts = '&faceOption=' + face_opts
 
-          # detections?type=face,person&faceOption=gender,landmark,age,emotion
-          face_opts = ''
-          t  = ''
+        r = requests.post(url + '?type=' + t + face_opts,
+                          headers=headers,
+                          data=self.image)
+        self._json['faces'] = json.loads(r.text)
 
-          if self._faces and self._people:
-              t='face,person'
+        if self._vehicles:
 
-          elif self._people and not self._faces:
-              t='person'
+            url = 'https://dev.sighthoundapi.com/v1/recognition?objectType=vehicle,licenseplate'
+            r = requests.post(url, 
+                              headers=headers, 
+                              data=self.image)
+            self._json['vehicles'] = json.loads(r.text)
 
-          if self._faces:
-              face_opts += 'gender,'   if self._gender         else ''
-              face_opts += 'landmark,' if self._face_landmarks else ''
-              face_opts += 'age,'      if self._age            else ''
-              face_opts += 'emotion,'  if self._emotions       else ''
-              face_opts = face_opts.rstrip(',')
-              if len(face_opts) > 0:
-                  face_opts = '&faceOption=' + face_opts
+        if self._celebrities:
+            url = 'https://dev.sighthoundapi.com/v1/recognition?groupId=_celebrities'
+            r = requests.post(url,
+                              headers=headers,
+                              data=self.image)
+            self._json['celebrities'] = json.loads(r.text)
 
-          r = requests.post(url + '?type=' + t + face_opts,
-                            headers=headers,
-                            data=self.image)
-          self._json['faces'] = json.loads(r.text)
+    @empty_unless('_vehicles')
+    def vehicles(self):
+        return self._json['vehicles']['objects']
 
-      if self._vehicles:
+    @empty_unless('_faces')
+    def faces(self):
+        return self._json['faces']['objects']
 
-          url = 'https://dev.sighthoundapi.com/v1/recognition?objectType=vehicle,licenseplate'
-          r = requests.post(url, 
-                            headers=headers, 
-                            data=self.image)
-          self._json['vehicles'] = json.loads(r.text)
+    @empty_unless('_celebrities')
+    def celebrities(self):
+        return self._json['celebrities']['objects']
 
-      if self._celebrities:
-          url = 'https://dev.sighthoundapi.com/v1/recognition?groupId=_celebrities'
-          r = requests.post(url,
-                           headers=headers,
-                           data=self.image)
-          self._json['celebrities'] = json.loads(r.text)
+    def tabular(self, confidence=0.0, ontology=False):
+        r = []
+        for vehicle in self.vehicles():
 
-  @empty_unless('_vehicles')
-  def vehicles(self):
-      return self._json['vehicles']['objects']
+            vertices = vehicle['vehicleAnnotation']['bounding']['vertices']
+            min_x = sys.maxsize
+            min_y = sys.maxsize
+            max_x = 0
+            max_y = 0
 
-  @empty_unless('_faces')
-  def faces(self):
-      return self._json['faces']['objects']
+            for vertex in vertices: # Assemble a bounding rectangle.
+                max_x = vertex['x'] if vertex['x'] > max_x else max_x
+                max_y = vertex['y'] if vertex['y'] > max_y else max_y
+                min_x = vertex['x'] if vertex['x'] < min_x else min_x
+                min_y = vertex['y'] if vertex['y'] < min_y else min_y
 
-  @empty_unless('_celebrities')
-  def celebrities(self):
-      return self._json['celebrities']['objects']
+            #print(vehicle.keys())
+            make  = vehicle['vehicleAnnotation']['attributes']['system']['make']
+            model = vehicle['vehicleAnnotation']['attributes']['system']['model']
+            color = vehicle['vehicleAnnotation']['attributes']['system']['color']
 
-  def tabular(self, confidence=0.0, ontology=False):
-      r = []
-      for vehicle in self.vehicles():
+            r.append(str(min_x) + '\t' + str(min_y) + '\t' \
+                     + str(max_x - min_x) + '\t' \
+                     + str(max_y - min_y) + '\t' \
+                     + self.prec_fmt.format(make['confidence']) + '\t' + make['name'] + '\t' \
+                     + self.prec_fmt.format(model['confidence']) + '\t' + model['name'] + '\t' \
+                     + self.prec_fmt.format(color['confidence']) + '\t' + color['name'])
 
-          vertices = vehicle['vehicleAnnotation']['bounding']['vertices']
-          min_x = sys.maxsize
-          min_y = sys.maxsize
-          max_x = 0
-          max_y = 0
+        for face in self.faces():
+            if face['type'] == 'face':
+                box = face['boundingBox']
+                r.append(str(box['x'])        + '\t' \
+                         + str(box['y'])      + '\t' \
+                         + str(box['width'])  + '\t' \
+                         + str(box['height']))
 
-          for vertex in vertices: # Assemble a bounding rectangle.
-              max_x = vertex['x'] if vertex['x'] > max_x else max_x
-              max_y = vertex['y'] if vertex['y'] > max_y else max_y
-              min_x = vertex['x'] if vertex['x'] < min_x else min_x
-              min_y = vertex['y'] if vertex['y'] < min_y else min_y
+        for celeb in self.celebrities():
+            if celeb['objectType'] != 'person'                \
+               or celeb['faceAnnotation']['recognitionConfidence'] < confidence:
+                continue
 
-          #print(vehicle.keys())
-          make  = vehicle['vehicleAnnotation']['attributes']['system']['make']
-          model = vehicle['vehicleAnnotation']['attributes']['system']['model']
-          color = vehicle['vehicleAnnotation']['attributes']['system']['color']
+            vertices = celeb['faceAnnotation']['bounding']['vertices']
+            min_x = sys.maxsize
+            min_y = sys.maxsize
+            max_x = 0
+            max_y = 0
 
-          r.append(str(min_x) + '\t' + str(min_y) + '\t' \
-                   + str(max_x - min_x) + '\t' \
-                   + str(max_y - min_y) + '\t' \
-                   + self.prec_fmt.format(make['confidence']) + '\t' + make['name'] + '\t' \
-                   + self.prec_fmt.format(model['confidence']) + '\t' + model['name'] + '\t' \
-                   + self.prec_fmt.format(color['confidence']) + '\t' + color['name'])
+            for vertex in vertices: # Assemble a bounding rectangle.
+                max_x = vertex['x'] if vertex['x'] > max_x else max_x
+                max_y = vertex['y'] if vertex['y'] > max_y else max_y
+                min_x = vertex['x'] if vertex['x'] < min_x else min_x
+                min_y = vertex['y'] if vertex['y'] < min_y else min_y
 
-      for face in self.faces():
-          if face['type'] == 'face':
-              box = face['boundingBox']
-              r.append(str(box['x'])        + '\t' \
-                       + str(box['y'])      + '\t' \
-                       + str(box['width'])  + '\t' \
-                       + str(box['height']))
+            score = celeb['faceAnnotation']['recognitionConfidence']
+            name  = celeb['objectId']
 
-      for celeb in self.celebrities():
-          if celeb['objectType'] != 'person'                \
-            or celeb['faceAnnotation']['recognitionConfidence'] < confidence:
-              continue
-
-          vertices = celeb['faceAnnotation']['bounding']['vertices']
-          min_x = sys.maxsize
-          min_y = sys.maxsize
-          max_x = 0
-          max_y = 0
-
-          for vertex in vertices: # Assemble a bounding rectangle.
-              max_x = vertex['x'] if vertex['x'] > max_x else max_x
-              max_y = vertex['y'] if vertex['y'] > max_y else max_y
-              min_x = vertex['x'] if vertex['x'] < min_x else min_x
-              min_y = vertex['y'] if vertex['y'] < min_y else min_y
-
-          score = celeb['faceAnnotation']['recognitionConfidence']
-          name  = celeb['objectId']
-
-          o_placeholder = self.ontology_placeholder + '\t' if ontology else ''
-          r.append(str(min_x) + '\t' + str(min_y) + '\t' \
-                   + str(max_x - min_x) + '\t'           \
-                   + str(max_y - min_y) + '\t'           \
-                   + o_placeholder                       \
-                   + self.prec_fmt.format(score) + '\t'  \
-                   + name)
+            o_placeholder = self.ontology_placeholder + '\t' if ontology else ''
+            r.append(str(min_x) + '\t' + str(min_y) + '\t' \
+                     + str(max_x - min_x) + '\t'           \
+                     + str(max_y - min_y) + '\t'           \
+                     + o_placeholder                       \
+                     + self.prec_fmt.format(score) + '\t'  \
+                     + name)
 
 
-      return r
+        return r
 
 class FacePlusPlus(Query):
 

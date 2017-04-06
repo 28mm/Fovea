@@ -1088,6 +1088,8 @@ class Google(Query):
 class OpenCV(Query):
     # http://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_objdetect/py_face_detection/py_face_detection.html
 
+    max_image_size = sys.maxsize
+    
     def __init__(self, image, faces=False):
         CV_LOAD_IMAGE_GRAY  = 0 # FIXME
         CV_LOAD_IMAGE_COLOR = 1 # FIXME
@@ -1661,10 +1663,10 @@ class SightHound(Query):
             if len(face_opts) > 0:
                 face_opts = '&faceOption=' + face_opts
 
-        r = requests.post(url + '?type=' + t + face_opts,
-                          headers=headers,
-                          data=self.image)
-        self._json['faces'] = json.loads(r.text)
+            r = requests.post(url + '?type=' + t + face_opts,
+                              headers=headers,
+                              data=self.image)
+            self._json['faces'] = json.loads(r.text)
 
         if self._vehicles:
 
@@ -1761,6 +1763,8 @@ class SightHound(Query):
         return r
 
 class FacePlusPlus(Query):
+
+    max_image_size = sys.maxsize
 
     def __init__(self, image, api_key, api_secret,
                  faces=False, emotions=False,

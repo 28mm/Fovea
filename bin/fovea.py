@@ -515,7 +515,7 @@ class Query(metaclass=ABCMeta):
 class Microsoft(Query):
     '''Query class for Microsoft->Cognitive Services->Cloud Vision API.'''
 
-    _MSFT_CV_BASE_URL  = 'https://api.projectoxford.ai/vision/v1.0/analyze'
+    _MSFT_CV_BASE_URL  = 'https://westcentralus.api.cognitive.microsoft.com/vision/v1.0'
     _MSFT_OCR_BASE_URL = 'https://westus.api.cognitive.microsoft.com/vision/v1.0/ocr'
 
     max_image_size = 4 * 1024 * 1024
